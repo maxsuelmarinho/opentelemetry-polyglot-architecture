@@ -1,4 +1,5 @@
 import express from 'express';
+import morgan from 'morgan';
 import dotenv from 'dotenv';
 import colors from 'colors';
 import connectDB from './config/db.js';
@@ -12,6 +13,11 @@ dotenv.config();
 connectDB();
 
 const app = express();
+
+if (process.env.NODE_ENV === 'development') {
+    app.use(morgan('dev'));
+}
+
 app.use(express.json());
 
 app.get('/', (req, res) => {
@@ -21,6 +27,7 @@ app.get('/', (req, res) => {
 app.use('/api/products', productRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/orders', orderRoutes);
+app.get('/api/config/paypal', (req, res) => res.send(process.env.PAYPAL_CLIENT_ID));
 
 app.use(notFound);
 

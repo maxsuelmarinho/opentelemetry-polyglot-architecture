@@ -29,6 +29,7 @@ UPDATE | /api/users/profile | Update user profile
 POST | /api/users | Register user
 POST | /api/orders | Place order
 GET | /api/orders/{orderId} | Get order by ID
+POST | /api/product/{productId}/reviews | Create product review
 
 ### List products
 
@@ -102,6 +103,16 @@ $ curl -i -H 'Content-Type: application/json' -H 'Authorization: Bearer eyJhbGci
   "shippingPrice": "0.00",
   "taxPrice": "27.00",
   "totalPrice": "206.98"
+}'
+```
+
+### Create product review
+
+```shell
+$ curl -i -H 'Content-Type: application/json' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYwMjI4NmUwMGI0MjNmMDc3ZjlhMDYyNiIsImlhdCI6MTYxMzAxODQ2MCwiZXhwIjoxNjE1NjEwNDYwfQ.RuHxDw5yS7XXI-eUHTFciQCz6NlZZNca8JEM_wtO8_M' -X POST http://localhost:5000/api/products/602286e00b423f077f9a062c/reviews -d '
+{
+  "rating": 5,
+  "comment": "Awesome headphones"
 }'
 ```
 
