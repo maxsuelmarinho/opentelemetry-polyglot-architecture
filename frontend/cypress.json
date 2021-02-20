@@ -1,0 +1,7 @@
+{
+  "$schema": "https://on.cypress.io/cypress.schema.json",
+  "env": {
+    "username": "john@example.com",
+    "password": "123456"
+  }
+}

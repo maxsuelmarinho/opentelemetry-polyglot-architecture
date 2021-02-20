@@ -25,3 +25,10 @@ yarn-debug.log*
 yarn-error.log*
 
 annotations.md
+
+# cypress
+/**/cypress/screenshots
+/**/cypress/videos
+/**/cypress/logs
+/**/cypress/fixtures/profile.json
+/**/cypress/fixtures/users.json

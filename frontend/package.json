@@ -25,7 +25,11 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "cy:open": "cypress open",
+    "cy:run": "cypress run",
+    "cy:info": "cypress info",
+    "e2e:cy": "start-server-and-test start http-get://localhost:3000 cy:run"
   },
   "eslintConfig": {
     "extends": [
@@ -44,5 +48,10 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "cypress": "^6.5.0",
+    "eslint-plugin-cypress": "^2.11.2",
+    "start-server-and-test": "^1.12.0"
   }
 }
