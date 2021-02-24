@@ -8,7 +8,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node node-backend/server",
     "server": "nodemon node-backend/server",
-    "client": "npm start --prefix frontend",
+    "client": "npm start --prefix reactjs-frontend",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "data:import": "node node-backend/seeder",
     "data:destroy": "node node-backend/seeder -d"
