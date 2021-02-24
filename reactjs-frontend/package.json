@@ -25,6 +25,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "analyze": "source-map-explorer 'build/static/js/*.js'",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "cy:open": "cypress open",
@@ -53,6 +54,7 @@
   "devDependencies": {
     "cypress": "^6.5.0",
     "eslint-plugin-cypress": "^2.11.2",
+    "source-map-explorer": "^2.5.2",
     "start-server-and-test": "^1.12.0"
   }
 }
