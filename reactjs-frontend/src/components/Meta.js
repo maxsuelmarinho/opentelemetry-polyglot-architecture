@@ -14,7 +14,7 @@ const Meta = ({ title, description, keywords }) => {
 }
 
 Meta.defaultProps = {
-    title: 'Welcome to Amaxzon | Home',
+    title: 'Welcome to Amaxson | Home',
     description: 'We sell the best products for cheap',
     keywords: 'electronics, buy electronics, cheap electronics'
 };
