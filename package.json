@@ -6,12 +6,12 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node backend/server",
-    "server": "nodemon backend/server",
+    "start": "node node-backend/server",
+    "server": "nodemon node-backend/server",
     "client": "npm start --prefix frontend",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "data:import": "node backend/seeder",
-    "data:destroy": "node backend/seeder -d"
+    "data:import": "node node-backend/seeder",
+    "data:destroy": "node node-backend/seeder -d"
   },
   "repository": {
     "type": "git",
