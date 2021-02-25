@@ -1,24 +1,24 @@
 {
   "name": "reactjs-ecommerce-example",
   "version": "1.0.0",
-  "description": "```shell $ npx create-react-app frontend $ npm i react-bootstrap $ npm i react-router-dom react-router-bootstrap",
+  "description": "",
   "main": "index.js",
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node node-backend/server",
-    "server": "nodemon node-backend/server",
+    "start": "node node-legacy-backend/server",
+    "server": "nodemon node-legacy-backend/server",
     "client": "npm start --prefix reactjs-frontend",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "data:import": "node node-backend/seeder",
-    "data:destroy": "node node-backend/seeder -d"
+    "data:import": "node node-legacy-backend/seeder",
+    "data:destroy": "node node-legacy-backend/seeder -d"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/maxsuelmarinho/reactjs-ecommerce-example.git"
   },
   "keywords": [],
-  "author": "",
+  "author": "maxsuelmarinho",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/maxsuelmarinho/reactjs-ecommerce-example/issues"
