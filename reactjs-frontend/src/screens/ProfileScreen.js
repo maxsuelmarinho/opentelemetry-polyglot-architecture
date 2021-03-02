@@ -6,7 +6,7 @@ import Message from '../components/Message';
 import Loader from '../components/Loader';
 import { getUserDetails, updateUserProfile } from '../actions/user';
 import { listMyOrders } from '../actions/order';
-import { USER_DETAILS_RESET, USER_UPDATE_PROFILE_RESET } from '../constants/user';
+import { USER_UPDATE_PROFILE_RESET } from '../constants/user';
 
 const ProfileScreen = ({ history }) => {
     const [name, setName] = useState('');
@@ -18,22 +18,22 @@ const ProfileScreen = ({ history }) => {
     const dispatch = useDispatch();
     const userDetails = useSelector(state => state.userDetails);
     const { loading, error, user } = userDetails;
-    
+
     const userLogin = useSelector(state => state.userLogin);
     const { userInfo } = userLogin;
-    
+
     const userUpdateProfile = useSelector(state => state.userUpdateProfile);
     const { success } = userUpdateProfile;
-    
+
     const orderListMy = useSelector(state => state.orderListMy);
     const { loading:loadingOrders, error:errorOrders, orders } = orderListMy;
-    
+
     useEffect(() => {
         if(!userInfo) {
             history.push('/login');
         } else {
             if (!user || !user.name || success) {
-                dispatch({type: USER_DETAILS_RESET});
+                dispatch({type: USER_UPDATE_PROFILE_RESET});
                 dispatch(getUserDetails('profile'));
                 dispatch(listMyOrders());
             } else {
@@ -42,7 +42,7 @@ const ProfileScreen = ({ history }) => {
             }
         }
     }, [dispatch, history, userInfo, user, success]);
-    
+
     const submitHandler = (e) => {
         e.preventDefault();
         if (password !== confirmPassword) {
