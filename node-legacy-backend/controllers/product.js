@@ -80,7 +80,7 @@ const getTopProducts = asyncHandler(async (req, res) => {
 });
 
 export {
-    getProducts, 
+    getProducts,
     getProductById,
     createProductReview,
     getTopProducts
