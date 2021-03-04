@@ -1,0 +1,28 @@
+spring:
+  flyway:
+    enabled: true
+    locations: classpath:db/migration/h2
+    url: "jdbc:h2:mem:order-service;MODE=PostgreSQL;COLLATION=CHARSET_UTF8;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;INIT=create domain if not exists jsonb as other;"
+    user: "sa"
+    password: ""
+  jpa:
+    database: "H2"
+    database-platform: "com.amaxson.order.configuration.CustomH2Dialect"
+    hibernate:
+      ddl-auto: "none"
+    show-sql: false
+    properties.hibernate.format_sql: false
+  datasource:
+    hikari:
+      connectionTestQuery: "SELECT 1"
+      minIdle: 1
+      maxPoolSize: 10
+      poolName: "pool"
+    platform: "h2"
+    driverClassName: "org.h2.Driver"
+    url: "jdbc:h2:mem:order-service;MODE=PostgreSQL;COLLATION=CHARSET_UTF8;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;INIT=create domain if not exists jsonb as other;"
+    username: "sa"
+    password: ""
+  h2.console.enabled: true
+
+logging.level.root: DEBUG
