@@ -6,7 +6,7 @@ import Rating from '../components/Rating';
 import Message from '../components/Message';
 import Loader from '../components/Loader';
 import Meta from '../components/Meta';
-import { 
+import {
     productDetailsAction,
     createProductReview,
 } from '../actions/product';
@@ -20,10 +20,10 @@ const ProductScreen = ({ history, match }) => {
     const dispatch = useDispatch();
     const productDetailsState = useSelector(state => state.productDetails);
     const { loading, error, product } = productDetailsState;
-    
+
     const productReviewCreate = useSelector(state => state.productReviewCreate);
     const { success:successProductReview, error:errorProductReview } = productReviewCreate;
-    
+
     const userLogin = useSelector(state => state.userLogin);
     const { userInfo } = userLogin;
 
@@ -43,7 +43,7 @@ const ProductScreen = ({ history, match }) => {
 
     const submitHandler = (e) => {
         e.preventDefault();
-        dispatch(createProductReview(match.params.id, { rating, comment }));
+        dispatch(createProductReview(match.params.id, { rating: Number(rating), comment }));
     };
 
     return (
@@ -111,8 +111,8 @@ const ProductScreen = ({ history, match }) => {
                                         <Button
                                             onClick={addToCartHandler}
                                             variant='warning'
-                                            className='btn-block' 
-                                            type='button' 
+                                            className='btn-block'
+                                            type='button'
                                             disabled={product.countInStock === 0}
                                         >
                                             Add to Cart
@@ -142,9 +142,9 @@ const ProductScreen = ({ history, match }) => {
                                         <Form onSubmit={submitHandler}>
                                             <Form.Group controlId='rating'>
                                                 <Form.Label>Rating</Form.Label>
-                                                <Form.Control 
-                                                    as='select' 
-                                                    value={rating} 
+                                                <Form.Control
+                                                    as='select'
+                                                    value={rating}
                                                     onChange={(e) => setRating(e.target.value)}
                                                 >
                                                     <option value=''>Select...</option>
@@ -157,9 +157,9 @@ const ProductScreen = ({ history, match }) => {
                                             </Form.Group>
                                             <Form.Group>
                                                 <Form.Label>Comment</Form.Label>
-                                                <Form.Control 
-                                                    as='textarea' 
-                                                    row='3' 
+                                                <Form.Control
+                                                    as='textarea'
+                                                    row='3'
                                                     value={comment}
                                                     onChange={(e) => setComment(e.target.value)}
                                                 ></Form.Control>

@@ -1,5 +1,12 @@
 import asyncHandler from 'express-async-handler';
 import axios from 'axios';
+
+const createError = (error) => {
+  return new Error(error.response && error.response.data.message
+    ? error.response.data.message
+    : error.message);
+};
+
 //import Product from '../models/product.js';
 // @desc    Fetch all products
 // @route   GET /api/products
@@ -12,7 +19,7 @@ const getProducts = asyncHandler(async (req, res) => {
   };
 
   try {
-    const { data } = await axios.get(`${process.env.PRODUCT_SERVICE_URL}${req.url}`, config);
+    const { data } = await axios.get(`${process.env.PRODUCT_SERVICE_URL}${req.url.split("/")[1]}`, config);
     res.json(data);
   } catch (error) {
     res.status(error.response.status);
@@ -52,7 +59,8 @@ const createProductReview = asyncHandler(async (req, res) => {
   };
 
   try {
-    const body = req.body;
+    const body = {...req.body, userId: req.user._id, userName: req.user.name};
+    console.log("review", body);
     const { data } = await axios.post(`${process.env.PRODUCT_SERVICE_URL}/${req.params.id}/reviews`, body, config);
     res.json(data);
   } catch (error) {
