@@ -1,0 +1,102 @@
+version: "3.7"
+
+networks:
+  ecommerce:
+
+volumes:
+  order_service_database_data:
+    driver: local
+  product_service_database_data:
+    driver: local
+
+x-postgres: &default-postgres
+  image: postgres:11.9-alpine
+  command: [ "postgres", "-c", "wal_level=logical" ]
+  restart: always
+  environment:
+    POSTGRES_DB: dev
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: s3cr3tp4ssw0rd
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U postgres"]
+    interval: 10s
+    timeout: 10s
+    retries: 3
+  ports:
+    - "5432:5432"
+  networks:
+    - ecommerce
+
+services:
+  bff:
+    build:
+      context: ./node-bff/
+    image: "maxsuelmarinho/bff:local"
+    restart: on-failure
+    container_name: bff
+    environment:
+      PORT: "8000"
+      ORDER_SERVICE_URL: "http://order-service:8080/api/orders"
+    ports:
+      - 8000:8000
+    depends_on:
+      - order-service
+    links:
+      - order-service
+
+  order-service:
+    build:
+      context: ./kotlin-order-service/
+    image: "maxsuelmarinho/order-service:local"
+    restart: on-failure
+    container_name: order-service
+    environment:
+      TZ: "America/Sao_Paulo"
+      SPRING_PROFILES_ACTIVE: "development"
+      SERVER_PORT: "8080"
+      DB_SERVER: "db-order-service"
+      DB_SERVER_PORT: "5432"
+      DB_NAME: "dev"
+      DB_USER: "postgres"
+      DB_PASS: "s3cr3tp4ssw0rd"
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-X", "GET", "http://order-service:8080/actuator/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      - db-order-service
+    links:
+      - db-order-service
+    networks:
+    - ecommerce
+
+  db-order-service:
+    <<: *default-postgres
+    container_name: db-order-service
+    volumes:
+      - order_service_database_data:/var/lib/postgresql/data
+
+  db-product-service:
+    <<: *default-postgres
+    container_name: db-product-service
+    ports:
+    - "5433:5432"
+    volumes:
+      - product_service_database_data:/var/lib/postgresql/data
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "6831:6831/udp" # agent: accept jaeger.thrift over compact thrift protocol
+      - "16686:16686" # query: serve frontend
+      - "14268:14268" # collector: accept jaeger.thrift directly from clients
+
+  # Zipkin
+
+  zipkin-all-in-one:
+    image: openzipkin/zipkin:2.11.12
+    ports:
+      - "9411:9411"
