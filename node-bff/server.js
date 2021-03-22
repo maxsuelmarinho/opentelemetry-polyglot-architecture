@@ -7,16 +7,20 @@ import userRoutes from './routes/user.js';
 import orderRoutes from './routes/order.js';
 import configRoutes from './routes/config.js';
 import { notFound, errorHandler } from './middleware/error.js';
+import { countAllRequests } from './observability/monitoring.js';
+import { addTraceId } from './observability/tracer.js';
 
 dotenv.config();
 
 const app = express();
+app.use(countAllRequests()); // metrics middleware
 
 if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'));
 }
 
 app.use(express.json());
+app.use(addTraceId);
 
 app.use('/api/products', productRoutes);
 app.use('/api/users', userRoutes);

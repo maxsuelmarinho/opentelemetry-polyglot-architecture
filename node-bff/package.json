@@ -3,16 +3,35 @@
   "version": "0.1.0",
   "description": "",
   "main": "index.js",
-  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server",
-    "server": "nodemon server"
+    "start": "babel-node -r ./observability/tracer.js ./server",
+    "server": "nodemon -r ./observability/tracer.js ./server --exec babel-node",
+    "clean": "rimraf ./dist/",
+    "build": "babel ./ --presets=@babel/preset-env --plugins=@babel/transform-runtime --out-dir dist --ignore ./node_modules,./.babelrc,./package.json,./npm-debug.log --copy-files",
+    "prod:build": "npm-run-all clean build"
   },
   "keywords": [],
   "author": "maxsuelmarinho",
   "license": "ISC",
   "dependencies": {
+    "@aspecto/opentelemetry-instrumentation-express": "0.0.107",
+    "@opentelemetry/api": "^0.18.0",
+    "@opentelemetry/core": "^0.18.0",
+    "@opentelemetry/exporter-collector": "^0.18.0",
+    "@opentelemetry/exporter-collector-grpc": "^0.18.0",
+    "@opentelemetry/exporter-collector-proto": "^0.18.0",
+    "@opentelemetry/exporter-jaeger": "^0.18.0",
+    "@opentelemetry/exporter-prometheus": "^0.18.0",
+    "@opentelemetry/exporter-zipkin": "^0.18.0",
+    "@opentelemetry/instrumentation": "^0.18.0",
+    "@opentelemetry/instrumentation-http": "^0.18.0",
+    "@opentelemetry/metrics": "^0.18.0",
+    "@opentelemetry/node": "^0.18.0",
+    "@opentelemetry/plugin-express": "^0.14.0",
+    "@opentelemetry/plugin-http": "^0.18.0",
+    "@opentelemetry/plugin-https": "^0.18.0",
+    "@opentelemetry/tracing": "^0.18.0",
     "axios": "^0.21.1",
     "colors": "^1.4.0",
     "dotenv": "^8.2.0",
@@ -21,6 +40,13 @@
     "morgan": "^1.10.0"
   },
   "devDependencies": {
-    "nodemon": "^2.0.7"
+    "@babel/cli": "^7.13.10",
+    "@babel/core": "^7.13.10",
+    "@babel/node": "^7.13.10",
+    "@babel/plugin-transform-runtime": "^7.13.10",
+    "@babel/preset-env": "^7.13.10",
+    "nodemon": "^2.0.7",
+    "npm-run-all": "^4.1.5",
+    "rimraf": "^3.0.2"
   }
 }
