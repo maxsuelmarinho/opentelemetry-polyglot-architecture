@@ -1,4 +1,4 @@
-FROM golang:1.13-alpine as builder
+FROM golang:1.14-alpine as builder
 RUN apk update && apk add --no-cache git ca-certificates tzdata openssh make
 RUN adduser -D -g '' appuser
 WORKDIR /app

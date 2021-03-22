@@ -1,4 +1,6 @@
 app_name: "product-service"
+app_version: "0.1.0"
+log_format: "text"
 server_port: 9090
 db_name: "dev"
 db_user_ddl: "postgres"
@@ -12,3 +14,6 @@ db_migration_path: "../../../db/migrations"
 db_pool_max_open_conns: "2"
 db_pool_max_idle_conns: "2"
 db_pool_conn_max_lifetime: "1h"
+jaeger_exporter_endpoint: "http://localhost:14268/api/traces"
+collector_collect_period: "2s"
+collector_exporter_endpoint: "localhost:4317"

@@ -9,9 +9,11 @@ import (
 	"github.com/maxsuelmarinho/ecommerce-example/golang-product-service/pkg/api/repository"
 	"github.com/maxsuelmarinho/ecommerce-example/golang-product-service/pkg/api/service"
 	"github.com/maxsuelmarinho/ecommerce-example/golang-product-service/pkg/logger"
+	"github.com/maxsuelmarinho/ecommerce-example/golang-product-service/pkg/telemetry"
 	"github.com/maxsuelmarinho/ecommerce-example/golang-product-service/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
 )
 
 func StartServer() {
@@ -25,6 +27,7 @@ func StartServer() {
 	productHandler := handler.NewProductHandler(service, logger)
 
 	r := mux.NewRouter()
+	r.Use(otelmux.Middleware(viper.GetString("APP_NAME")))
 	r.Methods(http.MethodGet).Path("/health").HandlerFunc(healthCheckHandler.HealthCheck)
 	r.Methods(http.MethodGet).Path("/api/products").HandlerFunc(productHandler.GetProducts)
 	r.Methods(http.MethodGet).Path("/api/products/top").HandlerFunc(productHandler.GetTopProducts)
@@ -33,6 +36,8 @@ func StartServer() {
 
 	serverPort := viper.GetInt("SERVER_PORT")
 	httpServer := &http.Server{Addr: fmt.Sprintf(":%d", serverPort), Handler: r}
+
+	telemetryShutdown := telemetry.Initialize(logger)
 
 	util.HandleSigterm(func() {
 		if err := database.GetConnection().Close(); err != nil {
@@ -46,6 +51,8 @@ func StartServer() {
 		} else {
 			logger.Debug("http server has been closed")
 		}
+
+		telemetryShutdown()
 	})
 
 	logger.Info("product service started on port ", serverPort)

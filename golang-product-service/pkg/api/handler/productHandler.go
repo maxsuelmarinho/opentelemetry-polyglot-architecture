@@ -9,6 +9,10 @@ import (
 	"github.com/maxsuelmarinho/ecommerce-example/golang-product-service/pkg/api/model"
 	"github.com/maxsuelmarinho/ecommerce-example/golang-product-service/pkg/api/service"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type ProductHandler interface {
@@ -41,7 +45,8 @@ func (h *productHandler) GetProducts(w http.ResponseWriter, r *http.Request) {
 
 	keyword := r.URL.Query().Get("keyword")
 
-	products, err := h.service.GetProducts(keyword, page, pageSize)
+	ctx := r.Context()
+	products, err := h.service.GetProducts(ctx, keyword, page, pageSize)
 	if err != nil {
 		handleError(err, w)
 		return
@@ -57,7 +62,8 @@ func (h *productHandler) GetProductByID() http.Handler {
 	return errorHandler(func(w http.ResponseWriter, r *http.Request) error {
 		vars := mux.Vars(r)
 		uuid := vars["id"]
-		product, err := h.service.GetProductByID(uuid)
+		ctx := r.Context()
+		product, err := h.service.GetProductByID(ctx, uuid)
 		if err != nil {
 			return err
 		}
@@ -71,6 +77,12 @@ func (h *productHandler) GetProductByID() http.Handler {
 
 func (h *productHandler) CreateProductReview() http.Handler {
 	return errorHandler(func(w http.ResponseWriter, r *http.Request) error {
+		ctx := r.Context()
+		tracer := otel.Tracer(viper.GetString("APP_NAME"))
+		var span trace.Span
+		ctx, span = tracer.Start(ctx, "CreateProductReview")
+		defer span.End()
+
 		var dto model.CreateReviewDTO
 		if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
 			return err
@@ -80,7 +92,8 @@ func (h *productHandler) CreateProductReview() http.Handler {
 		vars := mux.Vars(r)
 		uuid := vars["id"]
 
-		if err := h.service.CreateProductReview(uuid, dto); err != nil {
+		span.AddEvent("Creating product review", trace.WithAttributes(attribute.String("product.id", uuid)))
+		if err := h.service.CreateProductReview(ctx, uuid, dto); err != nil {
 			return err
 		}
 
@@ -88,13 +101,15 @@ func (h *productHandler) CreateProductReview() http.Handler {
 			"message": "Review added",
 		}
 
+		span.AddEvent("Product review created")
 		respondWithJSON(w, response, http.StatusCreated)
 		return nil
 	}, h.logger)
 }
 
 func (h *productHandler) GetTopProducts(w http.ResponseWriter, r *http.Request) {
-	products, err := h.service.GetTopProducts()
+	ctx := r.Context()
+	products, err := h.service.GetTopProducts(ctx)
 	if err != nil {
 		handleError(err, w)
 		return
