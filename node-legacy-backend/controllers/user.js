@@ -1,27 +1,55 @@
 import asyncHandler from 'express-async-handler';
 import User from '../models/user.js';
 import generateToken from '../utils/generateToken.js';
+import * as opentelemetry from '@opentelemetry/api';
+
+const tracer = opentelemetry.trace.getTracer('example-basic-tracer-node');
 
 // @desc    Auth user & get token
 // @route   POST /api/users/login
 // @access  Public
 const authUser = asyncHandler(async (req, res) => {
+    const parentSpan = tracer.startSpan('authUser');
+
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
-    
-    if (user && (await user.matchPassword(password))) {
-        res.json({
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            isAdmin: user.isAdmin,
-            token: generateToken(user._id),
-        });
-    } else {
-        res.status(401);
-        throw new Error('Invalid email or password');
+    const user = await findUser(parentSpan, email);
+
+    try {
+      if (user && (await user.matchPassword(password))) {
+          res.json({
+              _id: user._id,
+              name: user.name,
+              email: user.email,
+              isAdmin: user.isAdmin,
+              token: generateToken(user._id),
+          });
+      } else {
+          res.status(401);
+          throw new Error('Invalid email or password');
+      }
+    } catch (error) {
+      throw error;
+    } finally {
+      parentSpan.end();
     }
 });
+
+const findUser = async (parent, email) => {
+  const ctx = opentelemetry.setSpan(opentelemetry.context.active(), parent);
+  const span = tracer.startSpan('findUser', {
+    attributes: {
+      email,
+    }
+  }, ctx);
+
+  const user = await User.findOne({ email });
+
+  span.setAttribute('userId', user._id);
+  span.addEvent('invoking User.findOne');
+  span.end();
+
+  return user;
+};
 
 // @desc    Register a new user
 // @route   POST /api/users
@@ -29,12 +57,12 @@ const authUser = asyncHandler(async (req, res) => {
 const registerUser = asyncHandler(async (req, res) => {
     const { name, email, password } = req.body;
     const userExists = await User.findOne({ email });
-    
+
     if (userExists) {
         res.status(400);
         throw new Error('User already exists');
     }
-    
+
     const user = await User.create({
         name,
         email,

@@ -1,10 +1,15 @@
+import * as opentelemetry from '@opentelemetry/api';
 import asyncHandler from 'express-async-handler';
 import Product from '../models/product.js';
+
+const tracer = opentelemetry.trace.getTracer('example-basic-tracer-node');
 
 // @desc    Fetch all products
 // @route   GET /api/products
 // @access  Public
 const getProducts = asyncHandler(async (req, res) => {
+    const parentSpan = tracer.startSpan('getProducts');
+
     const pageSize = 2;
     const page = Number(req.query.pageNumber) || 1;
     const keyword = req.query.keyword ? {
@@ -14,13 +19,28 @@ const getProducts = asyncHandler(async (req, res) => {
         }
     } : {};
 
-    const count = await Product.countDocuments({...keyword});
-    const products = await Product.find({ ...keyword })
+    try {
+      //const count = await Product.countDocuments({...keyword});
+      const count = await countProducts(parentSpan, keyword);
+      const products = await Product.find({ ...keyword })
         .limit(pageSize)
         .skip(pageSize * (page - 1));
-    res.json({products, page, pages: Math.ceil(count / pageSize)});
+      res.json({products, page, pages: Math.ceil(count / pageSize)});
+    } catch (error) {
+      throw error;
+    } finally {
+      parentSpan.end();
+    }
 });
 
+const countProducts = async (parent, keyword) => {
+  const ctx = opentelemetry.setSpan(opentelemetry.context.active(), parent);
+  const span = tracer.startSpan('countProducts', undefined, ctx);
+  const count = await Product.countDocuments({...keyword});
+  span.end();
+
+  return count;
+}
 
 // @desc    Fetch single product
 // @route   GET /api/products/:id

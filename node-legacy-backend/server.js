@@ -1,3 +1,5 @@
+'use strict';
+
 import path from 'path';
 import express from 'express';
 import morgan from 'morgan';
@@ -8,18 +10,22 @@ import productRoutes from './routes/product.js';
 import userRoutes from './routes/user.js';
 import orderRoutes from './routes/order.js';
 import { notFound, errorHandler } from './middleware/error.js';
+import { countAllRequests } from './observability/monitoring.js';
+import { addTraceId } from './observability/tracer.js';
 
 dotenv.config();
 
 connectDB();
 
 const app = express();
+app.use(countAllRequests()); // metrics middleware
 
 if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'));
 }
 
 app.use(express.json());
+app.use(addTraceId);
 
 app.use('/api/products', productRoutes);
 app.use('/api/users', userRoutes);
