@@ -43,12 +43,10 @@ export default () => {
 
 
   const tracer = provider.getTracer(serviceName);
-
   BaseOpenTelemetryComponent.setTracer(serviceName);
   BaseOpenTelemetryComponent.setLogger(provider.logger);
 
-  console.log('tracing initialized');
+  console.log(`tracing initialized for ${serviceName} sending span to collector`);
   return tracer;
-
 };
 
