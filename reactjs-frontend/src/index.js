@@ -6,6 +6,9 @@ import './bootstrap.lux.min.css';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import Tracer from './observability/webTracing.js';
+
+Tracer();
 
 ReactDOM.render(
   <Provider store={store}>
