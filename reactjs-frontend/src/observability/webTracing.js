@@ -1,5 +1,6 @@
 import { ConsoleSpanExporter, SimpleSpanProcessor } from '@opentelemetry/tracing';
 import { WebTracerProvider } from '@opentelemetry/web';
+import { DiagConsoleLogger, DiagLogLevel, diag } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { DocumentLoad } from '@opentelemetry/plugin-document-load';
 import { CollectorTraceExporter } from '@opentelemetry/exporter-collector';
@@ -10,6 +11,12 @@ import { B3Propagator } from '@opentelemetry/propagator-b3';
 import { DEFAULT_SERVICE_NAME } from './constants';
 
 export default () => {
+
+  if (process.env.REACT_APP_COLLECTOR_DIAGNOSTIC_ENABLED) {
+    // Optional and only needed to see the internal diagnostic logging
+    diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
+  }
+
   const serviceName = process.env.REACT_APP_SERVICE_NAME || DEFAULT_SERVICE_NAME;
   console.log(serviceName);
 
@@ -19,12 +26,20 @@ export default () => {
     tracerProvider: provider,
     instrumentations: [
       new DocumentLoad(),
+      //new XMLHttpRequestInstrumentation(),
       new XMLHttpRequestInstrumentation({
-        ignoreUrls: [/localhost:8090\/sockjs-node/],
+        propagateTraceHeaderCorsUrls: ['http://localhost:8000','http://localhost:3000','http://localhost:55681'],
+      }),
+
+      /*
+      new XMLHttpRequestInstrumentation({
+        ignoreUrls: [/localhost/],
         propagateTraceHeaderCorsUrls: [
-          'https://httpbin.org/get',
+          'http://localhost:8000',
+          'http://localhost:3000',
         ],
       }),
+      */
     ],
   });
 

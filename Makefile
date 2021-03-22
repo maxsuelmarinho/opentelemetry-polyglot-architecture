@@ -4,7 +4,7 @@ help:		## Show this help.
 	@fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v fgrep | sed -e 's/\\$$//' | sed -e 's/##//'
 
 up:
-	@docker-compose up -d collector bff legacy-backend product-service order-service
+	@docker-compose up -d --build collector frontend
 
 down:
 	@docker-compose down

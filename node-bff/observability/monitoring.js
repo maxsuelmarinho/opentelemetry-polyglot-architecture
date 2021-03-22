@@ -1,4 +1,3 @@
-import { DiagConsoleLogger, DiagLogLevel, diag } from '@opentelemetry/api';
 import { MeterProvider, ConsoleMetricExporter } from '@opentelemetry/metrics';
 import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
 import { CollectorMetricExporter } from '@opentelemetry/exporter-collector';
@@ -36,11 +35,6 @@ const createMetricExporter = (serviceName, exporterType) => {
 
   return exporter;
 };
-
-if (process.env.COLLECTOR_DIAGNOSTIC_ENABLED) {
-  // Optional and only needed to see the internal diagnostic logging
-  diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
-}
 
 const exporter = createMetricExporter(serviceName, exporterType);
 const collectInterval = process.env.METRIC_COLLECT_INTERVAL || 3000;

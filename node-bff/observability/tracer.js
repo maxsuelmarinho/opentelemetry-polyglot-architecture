@@ -17,6 +17,11 @@ const exporterType = process.env.TRACING_EXPORTER || 'console';
 const serviceName = process.env.SERVICE_NAME || DEFAULT_SERVICE_NAME;
 const provider = new NodeTracerProvider();
 
+if (process.env.COLLECTOR_DIAGNOSTIC_ENABLED) {
+  // Optional and only needed to see the internal diagnostic logging
+  opentelemetry.diag.setLogger(new opentelemetry.DiagConsoleLogger(), opentelemetry.DiagLogLevel.DEBUG);
+}
+
 registerInstrumentations({
   tracerProvider: provider,
   instrumentations: [
@@ -31,11 +36,6 @@ registerInstrumentations({
         http: {
           enabled: true,
           path: '@opentelemetry/plugin-http',
-        },
-        mongodb: {
-          enabled: true,
-          path: '@opentelemetry/plugin-mongodb',
-          enhancedDatabaseReporting: true,
         },
       },
     },
@@ -69,7 +69,7 @@ const exporter = createTraceExporter(serviceName, exporterType);
 provider.addSpanProcessor(new SimpleSpanProcessor(exporter));
 provider.register();
 
-opentelemetry.trace.setGlobalTracerProvider(provider);
+//opentelemetry.trace.setGlobalTracerProvider(provider);
 
 export const tracer = opentelemetry.trace.getTracer(serviceName);
 

@@ -6,12 +6,12 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "babel-node -r ./node-legacy-backend/observability/tracer.js node-legacy-backend/server",
-    "server": "nodemon -r ./node-legacy-backend/observability/tracer.js ./node-legacy-backend/server --exec babel-node",
+    "server": "npm run server --prefix node-legacy-backend",
     "bff": "npm run server --prefix node-bff",
     "client": "npm start --prefix reactjs-frontend",
-    "dev": "concurrently \"npm run server\" \"npm run bff\" \"npm run client\"",
-    "data:import": "node node-legacy-backend/seeder",
-    "data:destroy": "node node-legacy-backend/seeder -d"
+    "dev": "concurrently  \"npm run data:import\" \"npm run server\" \"npm run bff\" \"npm run client\"",
+    "data:import": "npm run data:import --prefix node-legacy-backend",
+    "data:destroy": "npm run data:destroy --prefix node-legacy-backend"
   },
   "repository": {
     "type": "git",
@@ -24,8 +24,7 @@
     "url": "https://github.com/maxsuelmarinho/reactjs-ecommerce-example/issues"
   },
   "homepage": "https://github.com/maxsuelmarinho/reactjs-ecommerce-example#readme",
-  "dependencies": {
-  },
+  "dependencies": {},
   "devDependencies": {
     "@babel/cli": "^7.13.10",
     "@babel/core": "^7.13.10",
