@@ -8,15 +8,10 @@ volumes:
     driver: local
   product_service_database_data:
     driver: local
+  legacy_backend_database_data:
+    driver: local
   prometheus-data:
     driver: local
-
-#x-loki-logging: &loki-logging
-#  logging:
-#    driver: loki
-#    options:
-#      loki-url: "http://localhost:3100/loki/api/v1/push"
-#      loki-external-labels: kind=application,environment=development
 
 x-postgres: &default-postgres
   image: postgres:11.9-alpine
@@ -37,12 +32,42 @@ x-postgres: &default-postgres
     - ecommerce
 
 services:
+  frontend:
+    build:
+      context: ./reactjs-frontend/
+    image: "maxsuelmarinho/frontend:local"
+    container_name: frontend
+    ports:
+      - "3000:8080"
+    depends_on:
+      - collector
+      - bff
+    links:
+      - collector
+      - bff
+    networks:
+      - ecommerce
+
   bff:
     build:
       context: ./node-bff/
     image: "maxsuelmarinho/bff:local"
     restart: on-failure
     container_name: bff
+    environment:
+      NODE_ENV: "development"
+      PORT: "8000"
+      ORDER_SERVICE_URL: "http://order-service:8080/api/orders"
+      USER_SERVICE_URL: "http://legacy-backend:5000/api/users"
+      PRODUCT_SERVICE_URL: "http://product-service:8090/api/products"
+      CONFIG_SERVICE_URL: "http://legacy-backend:5000/api/config"
+      METRIC_PORT: "59464"
+      SERVICE_NAME: "node-bff"
+      TRACING_EXPORTER: "collector"
+      COLLECTOR_TRACE_URL: "http://collector:55681/v1/trace"
+      METRICS_EXPORTER: "collector"
+      COLLECTOR_METRIC_URL: "http://collector:55681/v1/metrics"
+      COLLECTOR_DIAGNOSTIC_ENABLED: "true"
     ports:
       - 8000:8000
     depends_on:
@@ -57,8 +82,6 @@ services:
       - collector
     networks:
       - ecommerce
-      #- monitoring
-    #<<: *loki-logging
 
   legacy-backend:
     build:
@@ -66,16 +89,28 @@ services:
     image: "maxsuelmarinho/legacy-backend:local"
     restart: on-failure
     container_name: legacy-backend
+    environment:
+      NODE_ENV: "development"
+      PORT: "5000"
+      MONGO_URI: "mongodb://admin:admin@db-legacy-backend:27017/amaxson?authSource=admin&retryWrites=true&w=majority"
+      JWT_SECRET: "abc123"
+      PAYPAL_CLIENT_ID: ${PAYPAL_CLIENT_ID}
+      METRIC_PORT: "59464"
+      SERVICE_NAME: "node-legacy-backend"
+      TRACING_EXPORTER: "collector"
+      COLLECTOR_TRACE_URL: "http://collector:55681/v1/trace"
+      METRICS_EXPORTER: "collector"
+      COLLECTOR_METRIC_URL: "http://collector:55681/v1/metrics"
     ports:
       - 5000:5000
     depends_on:
       - collector
+      - db-legacy-backend
     links:
       - collector
+      - db-legacy-backend
     networks:
       - ecommerce
-      #- monitoring
-    #<<: *loki-logging
 
   order-service:
     build:
@@ -121,8 +156,6 @@ services:
       - collector
     networks:
       - ecommerce
-      #- monitoring
-    #<<: *loki-logging
 
   product-service:
     build:
@@ -160,8 +193,6 @@ services:
       - collector
     networks:
       - ecommerce
-      #- monitoring
-    #<<: *loki-logging
 
   db-order-service:
     <<: *default-postgres
@@ -174,6 +205,20 @@ services:
     container_name: db-product-service
     volumes:
       - product_service_database_data:/var/lib/postgresql/data
+
+  db-legacy-backend:
+    image: "mongo:4.1.8-xenial"
+    container_name: db-legacy-backend
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: "admin"
+      MONGO_INITDB_ROOT_PASSWORD: "admin"
+    ports:
+      - "27017:27017"
+    volumes:
+      - legacy_backend_database_data:/data/db
+    networks:
+      - ecommerce
 
   pgadmin:
     image: dpage/pgadmin4
