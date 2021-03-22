@@ -8,6 +8,15 @@ volumes:
     driver: local
   product_service_database_data:
     driver: local
+  prometheus-data:
+    driver: local
+
+#x-loki-logging: &loki-logging
+#  logging:
+#    driver: loki
+#    options:
+#      loki-url: "http://localhost:3100/loki/api/v1/push"
+#      loki-external-labels: kind=application,environment=development
 
 x-postgres: &default-postgres
   image: postgres:11.9-alpine
@@ -23,7 +32,7 @@ x-postgres: &default-postgres
     timeout: 10s
     retries: 3
   ports:
-    - "5432:5432"
+    - "5432"
   networks:
     - ecommerce
 
@@ -34,15 +43,39 @@ services:
     image: "maxsuelmarinho/bff:local"
     restart: on-failure
     container_name: bff
-    environment:
-      PORT: "8000"
-      ORDER_SERVICE_URL: "http://order-service:8080/api/orders"
     ports:
       - 8000:8000
     depends_on:
       - order-service
+      - product-service
+      - legacy-backend
+      - collector
     links:
       - order-service
+      - product-service
+      - legacy-backend
+      - collector
+    networks:
+      - ecommerce
+      #- monitoring
+    #<<: *loki-logging
+
+  legacy-backend:
+    build:
+      context: ./node-legacy-backend/
+    image: "maxsuelmarinho/legacy-backend:local"
+    restart: on-failure
+    container_name: legacy-backend
+    ports:
+      - 5000:5000
+    depends_on:
+      - collector
+    links:
+      - collector
+    networks:
+      - ecommerce
+      #- monitoring
+    #<<: *loki-logging
 
   order-service:
     build:
@@ -59,6 +92,20 @@ services:
       DB_NAME: "dev"
       DB_USER: "postgres"
       DB_PASS: "s3cr3tp4ssw0rd"
+      OTEL_EXPORTER: "otlp"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://collector:55680"
+      OTEL_RESOURCE_ATTRIBUTES: "service.name=kotlin-order-service"
+      OTEL_EXPORTER_LOGGING_PREFIX: "[opentelemetry]"
+      #OTEL_EXPORTER: "otlp,jaeger,zipkin,prometheus,logging"
+      #OTEL_EXPORTER_JAEGER_ENDPOINT: "jaeger:55680"
+      #OTEL_EXPORTER_JAEGER_SERVICE_NAME: "kotlin-order-service"
+      #OTEL_EXPORTER_ZIPKIN_ENDPOINT: "zipkin:9411"
+      #OTEL_EXPORTER_ZIPKIN_SERVICE_NAME: "kotlin-order-service"
+      #OTEL_EXPORTER_PROMETHEUS_PORT: 9464
+      #OTEL_EXPORTER_PROMETHEUS_HOST: "0.0.0.0"
+      #OTEL_EXPORTER_OTLP_HEADERS: "key-value,key-value"
+      #OTEL_PROPAGATORS: "tracecontext,b3,b3single,jaeger,ottracer,xray"
+      #OTEL_ENDPOINT_PEER_SERVICE_MAPPING: "host=name,1.2.3.4=cats-service,dogs-abcdef123.serverlessapis.com=dogs-api"
     ports:
       - "8080:8080"
     healthcheck:
@@ -68,10 +115,53 @@ services:
       retries: 3
     depends_on:
       - db-order-service
+      - collector
     links:
       - db-order-service
+      - collector
     networks:
-    - ecommerce
+      - ecommerce
+      #- monitoring
+    #<<: *loki-logging
+
+  product-service:
+    build:
+      context: ./golang-product-service/
+    image: "maxsuelmarinho/product-service:local"
+    restart: on-failure
+    container_name: product-service
+    environment:
+      TZ: "America/Sao_Paulo"
+      APP_NAME: "golang-product-service"
+      APP_VERSION: "0.1.0"
+      SERVER_PORT: "8090"
+      DB_NAME: "dev"
+      DB_USER_DDL: "postgres"
+      DB_PASS_DDL: "s3cr3tp4ssw0rd"
+      DB_USER_DML: "postgres"
+      DB_PASS_DML: "s3cr3tp4ssw0rd"
+      DB_SERVER: "db-product-service"
+      DB_PORT: "5432"
+      DB_MIGRATION_TABLE: "product_service_migrations"
+      DB_MIGRATION_PATH: "/app/db/migrations"
+      DB_POOL_MAX_OPEN_CONNS: "2"
+      DB_POOL_MAX_IDLE_CONNS: "2"
+      DB_POOL_CONN_MAX_LIFETIME: "1h"
+      JAEGER_EXPORTER_ENDPOINT: "http://jaeger:14268/api/traces"
+      COLLECTOR_EXPORTER_ENDPOINT: "collector:4317"
+      COLLECTOR_COLLECT_PERIOD: "2s"
+    ports:
+      - "8090:8090"
+    depends_on:
+      - db-product-service
+      - collector
+    links:
+      - db-product-service
+      - collector
+    networks:
+      - ecommerce
+      #- monitoring
+    #<<: *loki-logging
 
   db-order-service:
     <<: *default-postgres
@@ -82,21 +172,86 @@ services:
   db-product-service:
     <<: *default-postgres
     container_name: db-product-service
-    ports:
-    - "5433:5432"
     volumes:
       - product_service_database_data:/var/lib/postgresql/data
 
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    ports:
+      - "80"
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: pgadmin4@pgadmin.org
+      PGADMIN_DEFAULT_PASSWORD: admin
+    depends_on:
+      - db-order-service
+      - db-product-service
+    networks:
+      - ecommerce
+
+  collector:
+    #image: otelcol:latest
+    #image: omnition/opentelemetry-collector-contrib:0.2.8
+    #image: otel/opentelemetry-collector:0.22.0
+    image: otel/opentelemetry-collector:0.18.0
+    #image: otel/opentelemetry-collector:0.16.0
+    #image: otel/opentelemetry-collector-dev:latest
+    container_name: collector
+    command: ["--config=/conf/collector-config.yaml", "--log-level=DEBUG"]
+    volumes:
+      - ./docker/otelcollector/collector-config.yaml:/conf/collector-config.yaml
+    ports:
+      - "55680:55680"
+      - "55681:55681" # OTLP http receiver
+      - "4317"   # OTLP gRPC receiver
+      - "8888:8888"   # Prometheus metrics exposed by the collector
+      - "8889:8889"   # Prometheus exporter metrics
+    depends_on:
+      - zipkin-all-in-one
+      - jaeger
+      - prometheus
+    networks:
+      - ecommerce
+
   jaeger:
-    image: jaegertracing/all-in-one:latest
+    image: jaegertracing/all-in-one:1.22
+    container_name: jaeger
     ports:
       - "6831:6831/udp" # agent: accept jaeger.thrift over compact thrift protocol
+      - "6832:6832/udp" # agent: accept jaeger.thrift over binary thrift protocol
       - "16686:16686" # query: serve frontend
       - "14268:14268" # collector: accept jaeger.thrift directly from clients
+      - "14250:14250" # collector: accept model.proto (gRPC)
+    networks:
+      - ecommerce
 
   # Zipkin
-
   zipkin-all-in-one:
-    image: openzipkin/zipkin:2.11.12
+    image: openzipkin/zipkin:2.23
+    container_name: zipkin
     ports:
       - "9411:9411"
+    networks:
+      - ecommerce
+
+  # UI: http://localhost:9090
+  # http://localhost:9090/targets
+  prometheus:
+    image: prom/prometheus:v2.22.0
+    container_name: "prometheus"
+    volumes:
+      - ./docker/prometheus/:/etc/prometheus/
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--storage.tsdb.retention.time=200h"
+      - "--web.enable-lifecycle"
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    networks:
+      - ecommerce

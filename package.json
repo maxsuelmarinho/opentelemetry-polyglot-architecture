@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node node-legacy-backend/server",
-    "server": "nodemon node-legacy-backend/server",
+    "start": "babel-node -r ./node-legacy-backend/observability/tracer.js node-legacy-backend/server",
+    "server": "nodemon -r ./node-legacy-backend/observability/tracer.js ./node-legacy-backend/server --exec babel-node",
+    "bff": "npm run server --prefix node-bff",
     "client": "npm start --prefix reactjs-frontend",
-    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "dev": "concurrently \"npm run server\" \"npm run bff\" \"npm run client\"",
     "data:import": "node node-legacy-backend/seeder",
     "data:destroy": "node node-legacy-backend/seeder -d"
   },
@@ -25,16 +25,12 @@
   },
   "homepage": "https://github.com/maxsuelmarinho/reactjs-ecommerce-example#readme",
   "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "colors": "^1.4.0",
-    "dotenv": "^8.2.0",
-    "express": "^4.17.1",
-    "express-async-handler": "^1.1.4",
-    "jsonwebtoken": "^8.5.1",
-    "mongoose": "^5.11.15",
-    "morgan": "^1.10.0"
   },
   "devDependencies": {
+    "@babel/cli": "^7.13.10",
+    "@babel/core": "^7.13.10",
+    "@babel/node": "^7.13.10",
+    "@babel/preset-env": "^7.13.10",
     "concurrently": "^5.3.0",
     "nodemon": "^2.0.7"
   }
