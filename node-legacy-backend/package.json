@@ -7,8 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "babel-node -r ./observability/tracer.js ./server",
     "server": "nodemon -r ./observability/tracer.js ./server --exec babel-node",
-    "data:import": "node ./seeder",
-    "data:destroy": "node ./seeder -d",
+    "data:import": "babel-node ./seeder.js",
+    "data:destroy": "babel-node ./seeder.js -d",
     "clean": "rimraf ./dist/",
     "build": "babel ./ --presets=@babel/preset-env --plugins=@babel/transform-runtime --out-dir dist --ignore ./node_modules,./.babelrc,./package.json,./npm-debug.log --copy-files",
     "prod:build": "npm-run-all clean build"
@@ -37,6 +37,7 @@
     "@opentelemetry/tracing": "^0.18.0",
     "bcryptjs": "^2.4.3",
     "colors": "^1.4.0",
+    "cors": "^2.8.5",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "express-async-handler": "^1.1.4",

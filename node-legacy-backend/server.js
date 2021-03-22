@@ -4,6 +4,7 @@ import path from 'path';
 import express from 'express';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import cors from 'cors';
 import colors from 'colors';
 import connectDB from './config/db.js';
 import productRoutes from './routes/product.js';
@@ -25,6 +26,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 app.use(express.json());
+app.use(cors());
 app.use(addTraceId);
 
 app.use('/api/products', productRoutes);

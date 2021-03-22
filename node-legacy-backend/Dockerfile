@@ -8,6 +8,6 @@ USER node
 RUN npm i
 COPY --chown=node:node . .
 RUN npm run prod:build
-EXPOSE 8080
-#CMD [ "npm", "start" ]
-CMD node ./dist/server.js
+CMD [ "npm", "start" ]
+#CMD node -r ./dist/server.js ./dist/observability/tracer.js
+

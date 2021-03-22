@@ -1,6 +1,8 @@
+'use strict';
 import express from 'express';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import cors from 'cors';
 import colors from 'colors';
 import productRoutes from './routes/product.js';
 import userRoutes from './routes/user.js';
@@ -20,6 +22,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 app.use(express.json());
+app.use(cors());
 app.use(addTraceId);
 
 app.use('/api/products', productRoutes);
