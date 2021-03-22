@@ -31,6 +31,10 @@ dependencies {
   implementation("com.h2database:h2")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+  implementation("io.opentelemetry:opentelemetry-api:1.0.1")
+  implementation("io.opentelemetry:opentelemetry-extension-annotations:1.0.1")
+  implementation("io.opentelemetry:opentelemetry-exporter-logging:1.0.1")
+  implementation("io.micrometer:micrometer-registry-prometheus")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
 

@@ -1,10 +1,7 @@
 package com.amaxson.order.dto
 
-import com.fasterxml.jackson.annotation.JsonAlias
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.annotation.JsonUnwrapped
 import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import javax.validation.constraints.NotBlank
 import javax.validation.constraints.NotNull
 

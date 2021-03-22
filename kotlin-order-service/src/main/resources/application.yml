@@ -47,8 +47,10 @@ management:
     web:
       #base-path: "/monitoring"
       exposure:
-        include: "info,health,loggers,httptrace"
+        include: "info,health,loggers,httptrace,metric,prometheus"
 
 endpoints:
   shutdown:
     enabled: true
+
+logging.pattern.console: "%d{yyyy-MM-dd HH:mm:ss} - %logger{36} - %msg t:%X{traceId} s:%X{spanId} %n"
