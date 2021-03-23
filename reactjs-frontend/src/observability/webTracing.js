@@ -6,6 +6,7 @@ import { DocumentLoad } from '@opentelemetry/plugin-document-load';
 import { CollectorTraceExporter } from '@opentelemetry/exporter-collector';
 import { ZoneContextManager } from '@opentelemetry/context-zone';
 import { BaseOpenTelemetryComponent } from '@opentelemetry/plugin-react-load';
+import { FetchInstrumentation } from '@opentelemetry/instrumentation-fetch';
 import { XMLHttpRequestInstrumentation } from '@opentelemetry/instrumentation-xml-http-request';
 import { B3Propagator } from '@opentelemetry/propagator-b3';
 import { DEFAULT_SERVICE_NAME } from './constants';
@@ -26,20 +27,12 @@ export default () => {
     tracerProvider: provider,
     instrumentations: [
       new DocumentLoad(),
-      //new XMLHttpRequestInstrumentation(),
+      new FetchInstrumentation(),
       new XMLHttpRequestInstrumentation({
-        propagateTraceHeaderCorsUrls: ['http://localhost:8000','http://localhost:3000','http://localhost:55681'],
-      }),
-
-      /*
-      new XMLHttpRequestInstrumentation({
-        ignoreUrls: [/localhost/],
         propagateTraceHeaderCorsUrls: [
-          'http://localhost:8000',
-          'http://localhost:3000',
+          /localhost:8000/,
         ],
       }),
-      */
     ],
   });
 

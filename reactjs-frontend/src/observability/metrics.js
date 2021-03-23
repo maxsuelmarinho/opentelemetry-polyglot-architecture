@@ -1,11 +1,6 @@
-import { DiagConsoleLogger, DiagLogLevel, diag } from '@opentelemetry/api';
 import { CollectorMetricExporter } from '@opentelemetry/exporter-collector';
 import { MetricExporter } from '@opentelemetry/metrics';
 import { DEFAULT_SERVICE_NAME } from './constants.js';
-
-if (process.env.REACT_APP_ENVIRONMENT === 'development') {
-  diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
-}
 
 const serviceName = process.env.REACT_APP_SERVICE_NAME || DEFAULT_SERVICE_NAME;
 const metricExporter = new CollectorMetricExporter({
