@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/viper"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -35,6 +36,13 @@ type productHandler struct {
 }
 
 func (h *productHandler) GetProducts(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	var span trace.Span
+	ctx, span = otel.Tracer(viper.GetString("APP_NAME")).Start(ctx, "GetProducts")
+	defer span.End()
+	endpointKV := httpPathKey.String("/api/v1/products")
+	httpRequestsCounter.Add(ctx, 1, endpointKV)
+
 	pageSize := 2
 	page := 1
 
@@ -45,17 +53,20 @@ func (h *productHandler) GetProducts(w http.ResponseWriter, r *http.Request) {
 
 	keyword := r.URL.Query().Get("keyword")
 
-	ctx := r.Context()
 	products, err := h.service.GetProducts(ctx, keyword, page, pageSize)
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		handleError(err, w)
 		return
 	}
 
 	if err := json.NewEncoder(w).Encode(products); err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		handleError(err, w)
 		return
 	}
+
+	span.SetStatus(codes.Ok, "Success")
 }
 
 func (h *productHandler) GetProductByID() http.Handler {

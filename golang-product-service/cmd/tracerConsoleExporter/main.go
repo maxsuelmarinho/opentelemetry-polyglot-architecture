@@ -9,7 +9,8 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/baggage"
-	"go.opentelemetry.io/otel/exporters/stdout"
+	"go.opentelemetry.io/otel/exporters/stdout/stdoutmetric"
+	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/metric/global"
 	"go.opentelemetry.io/otel/propagation"
@@ -18,7 +19,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric/selector/simple"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	"go.opentelemetry.io/otel/semconv"
+	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -29,8 +30,8 @@ func main() {
 }
 
 func initTracer(logger *logrus.Logger) func() {
-	exporter, err := stdout.NewExporter(
-		stdout.WithPrettyPrint(),
+	exporter, err := stdouttrace.New(
+		stdouttrace.WithPrettyPrint(),
 	)
 	if err != nil {
 		logger.Fatalf("failed to initialize stdout exporter pipeline: %v", err)
@@ -54,14 +55,20 @@ func initTracer(logger *logrus.Logger) func() {
 	bsp := sdktrace.NewBatchSpanProcessor(exporter)
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithSpanProcessor(bsp),
-		sdktrace.WithConfig(sdktrace.Config{DefaultSampler: sdktrace.AlwaysSample()}),
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
 		sdktrace.WithResource(resources),
 	)
 
 	// metric
+	metricExporter, err := stdoutmetric.New(
+		stdoutmetric.WithPrettyPrint(),
+	)
+	if err != nil {
+		logger.Fatalf("failed to initialize stdout metric exporter: %v", err)
+	}
 	pusher := controller.New(
-		processor.New(simple.NewWithExactDistribution(), exporter),
-		controller.WithPusher(exporter),
+		processor.NewFactory(simple.NewWithExactDistribution(), metricExporter),
+		controller.WithExporter(metricExporter),
 		controller.WithCollectPeriod(5*time.Second),
 	)
 
@@ -71,13 +78,11 @@ func initTracer(logger *logrus.Logger) func() {
 
 	//
 	otel.SetTracerProvider(tp)
-	global.SetMeterProvider(pusher.MeterProvider())
+	global.SetMeterProvider(pusher)
 	propagator := propagation.NewCompositeTextMapPropagator(propagation.Baggage{}, propagation.TraceContext{})
 	otel.SetTextMapPropagator(propagator)
 
 	//
-	fooKey := attribute.Key("ex.com/foo")
-	barKey := attribute.Key("ex.com/bar")
 	anotherKey := attribute.Key("ex.com/another")
 	lemonsKey := attribute.Key("ex.com/lemons")
 	commonLabels := []attribute.KeyValue{lemonsKey.Int(10), attribute.String("A", "1"), attribute.String("B", "2"), attribute.String("C", "3")}
@@ -88,17 +93,17 @@ func initTracer(logger *logrus.Logger) func() {
 	observerCallback := func(_ context.Context, result metric.Float64ObserverResult) {
 		result.Observe(1, commonLabels...)
 	}
-	_ = metric.Must(meter).NewFloat64ValueObserver("ex.com.one", observerCallback, metric.WithDescription("A ValueObserver set to 1.0"))
+	_ = metric.Must(meter).NewFloat64CounterObserver("ex.com.one", observerCallback, metric.WithDescription("A ValueObserver set to 1.0"))
 
 	// synchronous value recorder
-	valueRecorder := metric.Must(meter).NewFloat64ValueRecorder("ex.com.two")
+	valueRecorder := metric.Must(meter).NewFloat64Counter("ex.com.two")
 	boundRecorder := valueRecorder.Bind(commonLabels...)
 
 	tracer := otel.Tracer("ex.com/basic")
-	ctx = baggage.ContextWithValues(ctx,
-		fooKey.String("foo1"),
-		barKey.String("bar1"),
-	)
+	foo, _ := baggage.NewMember("ex.com/foo", "foo1")
+	bar, _ := baggage.NewMember("ex.com/bar", "bar1")
+	bag, _ := baggage.New(foo, bar)
+	ctx = baggage.ContextWithBaggage(ctx, bag)
 
 	func(ctx context.Context) {
 		var span trace.Span
@@ -108,8 +113,10 @@ func initTracer(logger *logrus.Logger) func() {
 		span.AddEvent("Nice operation!", trace.WithAttributes(attribute.Int("bogons", 100)))
 		span.SetAttributes(anotherKey.String("yes"))
 
+		another, _ := baggage.NewMember("ex.com/another", "xyz")
+		bag, _ := baggage.New(another)
 		meter.RecordBatch(
-			baggage.ContextWithValues(ctx, anotherKey.String("xyz")),
+			baggage.ContextWithBaggage(ctx, bag),
 			commonLabels,
 			valueRecorder.Measurement(2.0),
 		)
@@ -121,7 +128,7 @@ func initTracer(logger *logrus.Logger) func() {
 
 			span.SetAttributes(lemonsKey.String("five"))
 			span.AddEvent("Sub span event")
-			boundRecorder.Record(ctx, 1.3)
+			boundRecorder.Add(ctx, 1.3)
 		}(ctx)
 	}(ctx)
 
