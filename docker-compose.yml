@@ -12,6 +12,8 @@ volumes:
     driver: local
   prometheus-data:
     driver: local
+  esdata:
+    driver: local
 
 x-postgres: &default-postgres
   image: postgres:11.9-alpine
@@ -181,7 +183,7 @@ services:
       DB_POOL_MAX_IDLE_CONNS: "2"
       DB_POOL_CONN_MAX_LIFETIME: "1h"
       JAEGER_EXPORTER_ENDPOINT: "http://jaeger:14268/api/traces"
-      COLLECTOR_EXPORTER_ENDPOINT: "collector:4317"
+      COLLECTOR_EXPORTER_ENDPOINT: "collector:54317"
       COLLECTOR_COLLECT_PERIOD: "2s"
     ports:
       - "8090:8090"
@@ -203,6 +205,8 @@ services:
   db-product-service:
     <<: *default-postgres
     container_name: db-product-service
+    ports:
+      - "5432:5432"
     volumes:
       - product_service_database_data:/var/lib/postgresql/data
 
@@ -236,26 +240,36 @@ services:
       - ecommerce
 
   collector:
-    #image: otelcol:latest
-    #image: omnition/opentelemetry-collector-contrib:0.2.8
-    #image: otel/opentelemetry-collector:0.22.0
-    image: otel/opentelemetry-collector:0.18.0
-    #image: otel/opentelemetry-collector:0.16.0
-    #image: otel/opentelemetry-collector-dev:latest
+    build:
+      context: ./docker/otelcollector/
+    # image: maxsuelmarinho/opentelemetry-collector-contrib:0.22.0
+    image: otel/opentelemetry-collector-contrib:0.22.0
     container_name: collector
-    command: ["--config=/conf/collector-config.yaml", "--log-level=DEBUG"]
+    command: ["--config=/conf/otel-collector-config.yaml", "--log-level=DEBUG"]
     volumes:
-      - ./docker/otelcollector/collector-config.yaml:/conf/collector-config.yaml
+      - ./docker/otelcollector/collector-config.yaml:/conf/otel-collector-config.yaml
+    environment:
+      ZIPKIN_ENDPOINT: "http://zipkin-all-in-one:9411/api/v2/spans"
+      JAEGER_ENDPOINT: "jaeger:14250"
+      ELASTIC_APM_SERVER_ENDPOINT: "elastic-apm:8200"
+      ELASTIC_APM_SERVER_TOKEN: "s3cr3t"
+      ELASTIC_APM_SERVER_ENDPOINT_INSECURE: "true"
+      #TRACES_EXPORTERS_ENABLED: "zipkin,jaeger,otlp/elastic"
     ports:
       - "55680:55680"
       - "55681:55681" # OTLP http receiver
-      - "4317"   # OTLP gRPC receiver
+      - "54317:54317" # OTLP gRPC receiver
       - "8888:8888"   # Prometheus metrics exposed by the collector
       - "8889:8889"   # Prometheus exporter metrics
+      - "55679:55679" # zpages: /debug/servicez, /debug/pipelinez, /debug/extensionz, /debug/tracez, /debug/rpcz
+      - "1888"   # pprof: /debug/pprof/
+      - "13133:13133" # health check
     depends_on:
       - zipkin-all-in-one
       - jaeger
       - prometheus
+      - kibana
+      - elastic-apm
     networks:
       - ecommerce
 
@@ -300,3 +314,71 @@ services:
       - "9090:9090"
     networks:
       - ecommerce
+
+  # https://www.elastic.co/guide/en/apm/get-started/current/quick-start-overview.html
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.15.0
+    container_name: "kibana"
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    healthcheck:
+      interval: 10s
+      retries: 20
+      test: curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5601/api/status
+    networks:
+      - ecommerce
+    depends_on:
+      - elasticsearch
+      - elastic-apm
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.15.0
+    container_name: "elasticsearch"
+    environment:
+      - bootstrap.memory_lock=true
+      - cluster.name=docker-cluster
+      - cluster.routing.allocation.disk.threshold_enabled=false
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-XX:UseAVX=2 -Xms512m -Xmx512m
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - ecommerce
+    healthcheck:
+      interval: 20s
+      retries: 10
+      test: curl -s http://localhost:9200/_cluster/health | grep -vq '"status":"red"'
+
+  # https://www.elastic.co/guide/en/apm/server/current/running-on-docker.html
+  # https://faun.pub/elastic-apm-and-opentelemetry-integration-49abaaccdad9
+  elastic-apm:
+    image: "docker.elastic.co/apm/apm-server:7.15.0"
+    container_name: "elastic-apm"
+    user: apm-server
+    ports:
+      - "8200:8200"
+    volumes:
+      - ./docker/elastic-apm/apm-server.yml:/usr/share/apm-server/apm-server.yml:ro
+    command: >
+       apm-server -e
+         -E apm-server.rum.enabled=true
+         -E setup.kibana.host=kibana:5601
+         -E setup.template.settings.index.number_of_replicas=0
+         -E apm-server.kibana.enabled=true
+         -E apm-server.kibana.host=kibana:5601
+         -E output.elasticsearch.hosts=["elasticsearch:9200"]
+    healthcheck:
+      interval: 10s
+      retries: 12
+      test: curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:8200/
+    networks:
+      - ecommerce
+    depends_on:
+      - elasticsearch
+
+

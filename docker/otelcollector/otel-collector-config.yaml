@@ -7,9 +7,7 @@ receivers:
         endpoint: 0.0.0.0:54317
       http:
         endpoint: 0.0.0.0:55681
-        cors_allowed_origins:
-        - http://*
-        - https://*
+        cors_allowed_origins: [${RECEIVERS_CORS_ALLOWED_ORIGINS}]
 
 processors:
   memory_limiter:
@@ -31,10 +29,10 @@ exporters:
     endpoint: "0.0.0.0:8889"
     namespace: otelcollector
   zipkin:
-    endpoint: "http://zipkin-all-in-one:9411/api/v2/spans"
+    endpoint: "${ZIPKIN_ENDPOINT}"
     format: proto
   jaeger:
-    endpoint: "jaeger:14250"
+    endpoint: "${JAEGER_ENDPOINT}"
     insecure: true
   otlp/elastic:
     # Elastic APM server https endpoint without the "https://" prefix
@@ -45,17 +43,10 @@ exporters:
       Authorization: "Bearer ${ELASTIC_APM_SERVER_TOKEN}"
   datadog/api:
     env: ${DATADOG_ENV}
-    tags: [opentemeletry:true]
+    tags: [${DATADOG_TAGS}]
     api:
       key: ${DATADOG_API_KEY}
-  # https://aws-otel.github.io/docs/getting-started/x-ray
-  awsxray:
-    region: ${AWS_XRAY_REGION}
-    endpoint: ${AWS_XRAY_ENDPOINT}
-    local_mode: ${AWS_XRAY_LOCAL_MODE}
-    role_arn: ${AWS_XRAY_ROLE_ARN}
-  # https://aws-otel.github.io/docs/getting-started/cloudwatch-metrics
-  awsemf:
+
   #otlp:
   #  endpoint: "tempo:55680"
   #  insecure: true
@@ -66,10 +57,14 @@ service:
   extensions: [pprof, zpages, health_check]
   pipelines:
     traces:
-      receivers: [otlp]
+      receivers: [${TRACES_RECEIVERS_ENABLED}]
       processors: [batch]
-      exporters: [logging, zipkin, jaeger, otlp/elastic]
+      exporters: [${TRACES_EXPORTERS_ENABLED}]
     metrics:
-      receivers: [otlp]
+      receivers: [${METRICS_RECEIVERS_ENABLED}]
       processors: [batch]
-      exporters: [prometheus, otlp/elastic]
+      exporters: [${METRICS_EXPORTERS_ENABLED}]
+    logs:
+      receivers: [${LOGS_RECEIVERS_ENABLED}]
+      processors: [batch]
+      exporters: [${LOGS_EXPORTERS_ENABLED}]
