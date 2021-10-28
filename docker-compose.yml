@@ -240,8 +240,8 @@ services:
       - ecommerce
 
   collector:
-    build:
-      context: ./docker/otelcollector/
+    #build:
+    #  context: ./docker/otelcollector/
     # image: maxsuelmarinho/opentelemetry-collector-contrib:0.22.0
     image: otel/opentelemetry-collector-contrib:0.22.0
     container_name: collector

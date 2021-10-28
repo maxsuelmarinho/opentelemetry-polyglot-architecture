@@ -62,7 +62,7 @@ func (r *postgresRepository) GetProducts(ctx context.Context, keyword string, of
 	return products, nil
 }
 
-func (r *postgresRepository) GetProductsCount(keyword string) (int, error) {
+func (r *postgresRepository) GetProductsCount(ctx context.Context, keyword string) (int, error) {
 	var count int
 	selectClause := `SELECT COUNT(1) FROM products p`
 	var values []interface{}
@@ -79,7 +79,7 @@ func (r *postgresRepository) GetProductsCount(keyword string) (int, error) {
 	}
 
 	query = sqlx.Rebind(sqlx.DOLLAR, query)
-	if err := r.db.QueryRow(query, args...).Scan(&count); err != nil {
+	if err := r.db.QueryRowContext(ctx, query, args...).Scan(&count); err != nil {
 		return 0, err
 	}
 

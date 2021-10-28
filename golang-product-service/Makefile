@@ -53,10 +53,12 @@ promote:
 display-version:		## Display current version
 	- @echo "v$(app_version)"
 
+install-dependencies:
+	@go mod download
+
 build: 			## Generate application binaries
-	@go mod download && \
-		CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -v -installsuffix cgo -o ${build_directory}/${app_name} cmd/server/main.go && \
-		CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -v -installsuffix cgo -o ${build_directory}/healthchecker cmd/healthchecker/main.go || exit $?
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -v -installsuffix cgo -o ${build_directory}/${app_name} cmd/server/main.go && \
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -v -installsuffix cgo -o ${build_directory}/healthchecker cmd/healthchecker/main.go || exit $?
 
 # Quality target
 install-go-tools:

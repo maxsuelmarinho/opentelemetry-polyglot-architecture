@@ -37,7 +37,7 @@ func (s *productService) GetProducts(ctx context.Context, keyword string, page, 
 		return nil, err
 	}
 
-	count, err := s.repository.GetProductsCount(keyword)
+	count, err := s.repository.GetProductsCount(ctx, keyword)
 	if err != nil {
 		return nil, err
 	}

@@ -1,7 +1,11 @@
-FROM golang:1.14-alpine as builder
+FROM golang:1.16-alpine3.13 as builder
 RUN apk update && apk add --no-cache git ca-certificates tzdata openssh make
 RUN adduser -D -g '' appuser
 WORKDIR /app
+COPY go.mod .
+COPY go.sum .
+COPY Makefile .
+RUN make install-dependencies
 COPY . .
 RUN make -S build
 

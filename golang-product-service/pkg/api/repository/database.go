@@ -10,6 +10,9 @@ import (
 	migrate "github.com/rubenv/sql-migrate"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"github.com/uptrace/opentelemetry-go-extra/otelsql"
+	"github.com/uptrace/opentelemetry-go-extra/otelsqlx"
+	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 )
 
 const (
@@ -49,7 +52,9 @@ func (d *database) Initialize() {
 		d.logger.WithError(err).Fatal("Could not create connection string")
 	}
 
-	dbDML, err := sqlx.Connect(driverName, connectionStringParameters)
+	dbDML, err := otelsqlx.Open(driverName, connectionStringParameters,
+		otelsql.WithAttributes(semconv.DBSystemPostgreSQL),
+		otelsql.WithDBName(viper.GetString("DB_NAME")))
 	if err != nil {
 		d.logger.WithError(err).Fatal("Could not connect using DML user")
 	}
@@ -103,7 +108,9 @@ func (d *database) runMigration() {
 		d.logger.WithError(err).Fatal("could not create connection string")
 	}
 
-	dbDDL, err := sqlx.Connect(driverName, connectionStringParameters)
+	dbDDL, err := otelsqlx.Open(driverName, connectionStringParameters,
+		otelsql.WithAttributes(semconv.DBSystemPostgreSQL),
+		otelsql.WithDBName(viper.GetString("DB_NAME")))
 	if err != nil {
 		d.logger.WithError(err).Fatal("could not connect using DDL user")
 	}
