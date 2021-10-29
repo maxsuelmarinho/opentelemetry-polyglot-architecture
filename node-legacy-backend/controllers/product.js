@@ -1,8 +1,7 @@
 import * as opentelemetry from '@opentelemetry/api';
 import asyncHandler from 'express-async-handler';
 import Product from '../models/product.js';
-
-const tracer = opentelemetry.trace.getTracer('example-basic-tracer-node');
+import { tracer } from '../observability/tracer.js';
 
 // @desc    Fetch all products
 // @route   GET /api/products
@@ -34,7 +33,7 @@ const getProducts = asyncHandler(async (req, res) => {
 });
 
 const countProducts = async (parent, keyword) => {
-  const ctx = opentelemetry.setSpan(opentelemetry.context.active(), parent);
+  const ctx = opentelemetry.trace.setSpan(opentelemetry.context.active(), parent);
   const span = tracer.startSpan('countProducts', undefined, ctx);
   const count = await Product.countDocuments({...keyword});
   span.end();

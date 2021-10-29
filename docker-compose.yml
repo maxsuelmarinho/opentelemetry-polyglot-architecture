@@ -129,9 +129,12 @@ services:
       DB_NAME: "dev"
       DB_USER: "postgres"
       DB_PASS: "s3cr3tp4ssw0rd"
+      # https://github.com/open-telemetry/opentelemetry-java/blob/main/sdk-extensions/autoconfigure/README.md#otlp-exporter-both-span-and-metric-exporters
       OTEL_EXPORTER: "otlp"
-      OTEL_EXPORTER_OTLP_ENDPOINT: "http://collector:55680"
-      OTEL_RESOURCE_ATTRIBUTES: "service.name=kotlin-order-service"
+      OTEL_TRACES_EXPORTER: "otlp"
+      OTEL_METRICS_EXPORTER: "otlp"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://collector:54317"
+      OTEL_RESOURCE_ATTRIBUTES: "service.name=kotlin-order-service,service.version=0.1.0"
       OTEL_EXPORTER_LOGGING_PREFIX: "[opentelemetry]"
       #OTEL_EXPORTER: "otlp,jaeger,zipkin,prometheus,logging"
       #OTEL_EXPORTER_JAEGER_ENDPOINT: "jaeger:55680"
@@ -221,6 +224,22 @@ services:
       - "27017:27017"
     volumes:
       - legacy_backend_database_data:/data/db
+    networks:
+      - ecommerce
+
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: "admin"
+      ME_CONFIG_MONGODB_ADMINPASSWORD: "admin"
+      ME_CONFIG_MONGODB_SERVER: "db-legacy-backend"
+      ME_CONFIG_MONGODB_PORT: "27017"
+    depends_on:
+      - db-legacy-backend
     networks:
       - ecommerce
 

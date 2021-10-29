@@ -12,6 +12,14 @@ $ npm i react-router-dom react-router-bootstrap
     ```shell
     $ docker-compose up -d
     ```
+
+2. Run seeds:
+    ```shell
+    $ cd node-legacy-backend
+    $ cp .env.dist .env
+    $ npm install
+    $ npm run data:import
+    ```
 ### Services
 
 - [Amaxson Frontend in React.js](http://localhost:3000)
@@ -23,6 +31,7 @@ $ npm i react-router-dom react-router-bootstrap
 - [Zipkin](http://localhost:9411)
 - [Prometheus](http://localhost:9090)
 - [Kibaba](http://localhost:5601)
+- [Mongo Express](http://localhost:8081)
 
 ## REST API
 
@@ -41,12 +50,13 @@ $ npm i react-router-dom react-router-bootstrap
 
 Método | Caminho | Descrição
 --- | --- | ---
+GET | /metrics | Service metrics
 GET | /api/products | List products
 GET | /api/products/{productId} | Get product details
 GET | /api/products/top | Get top products
 POST | /api/users/login | User login
 GET | /api/users/profile | User profile
-UPDATE | /api/users/profile | Update user profile
+PUT | /api/users/profile | Update user profile
 POST | /api/users | Register user
 POST | /api/orders | Place order
 GET | /api/orders/{orderId} | Get order by ID

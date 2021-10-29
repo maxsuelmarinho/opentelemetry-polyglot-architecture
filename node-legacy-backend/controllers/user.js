@@ -2,8 +2,7 @@ import asyncHandler from 'express-async-handler';
 import User from '../models/user.js';
 import generateToken from '../utils/generateToken.js';
 import * as opentelemetry from '@opentelemetry/api';
-
-const tracer = opentelemetry.trace.getTracer('example-basic-tracer-node');
+import { tracer } from '../observability/tracer.js';
 
 // @desc    Auth user & get token
 // @route   POST /api/users/login
