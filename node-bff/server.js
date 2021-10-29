@@ -9,7 +9,7 @@ import userRoutes from './routes/user.js';
 import orderRoutes from './routes/order.js';
 import configRoutes from './routes/config.js';
 import { notFound, errorHandler } from './middleware/error.js';
-import { countAllRequests } from './observability/monitoring.js';
+import { countAllRequests } from './observability/metrics.js';
 import { addTraceId } from './observability/tracer.js';
 
 dotenv.config();

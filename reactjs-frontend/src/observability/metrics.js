@@ -1,10 +1,21 @@
-import { CollectorMetricExporter } from '@opentelemetry/exporter-collector';
-import { MetricExporter } from '@opentelemetry/metrics';
+import { DiagConsoleLogger, DiagLogLevel, diag } from '@opentelemetry/api';
+import { OTLPMetricExporter } from '@opentelemetry/exporter-otlp-http';
+import { MeterProvider } from '@opentelemetry/sdk-metrics-base';
+import { Resource }from '@opentelemetry/resources';
+import { SemanticResourceAttributes }from '@opentelemetry/semantic-conventions';
 import { DEFAULT_SERVICE_NAME } from './constants.js';
 
+if (process.env.REACT_APP_COLLECTOR_DIAGNOSTIC_ENABLED) {
+  // Optional and only needed to see the internal diagnostic logging (during development)
+  diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
+}
+
 const serviceName = process.env.REACT_APP_SERVICE_NAME || DEFAULT_SERVICE_NAME;
-const metricExporter = new CollectorMetricExporter({
+
+const collectorUrl = process.env.REACT_APP_COLLECTOR_METRIC_URL || 'http://localhost:55681/v1/metrics';
+const metricExporter = new OTLPMetricExporter({
   serviceName: serviceName,
+  url: collectorUrl,
 });
 
 let interval;
@@ -21,6 +32,9 @@ const startMetrics = () => {
   meter = new MeterProvider({
     exporter: metricExporter,
     interval: process.env.REACT_APP_METRIC_COLLECT_INTERVAL || 1000,
+    resource: new Resource({
+      [SemanticResourceAttributes.SERVICE_NAME]: serviceName,
+    }),
   }).getMeter(serviceName);
 
   const requestCounter = meter.createCounter('requests', {

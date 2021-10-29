@@ -34,7 +34,7 @@ const authUser = asyncHandler(async (req, res) => {
 });
 
 const findUser = async (parent, email) => {
-  const ctx = opentelemetry.setSpan(opentelemetry.context.active(), parent);
+  const ctx = opentelemetry.trace.setSpan(opentelemetry.context.active(), parent);
   const span = tracer.startSpan('findUser', {
     attributes: {
       email,

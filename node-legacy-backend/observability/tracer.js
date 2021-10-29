@@ -34,10 +34,15 @@ registerInstrumentations({
   tracerProvider: provider,
   instrumentations: [
     new HttpInstrumentation({
-        requestHook: (span, request) => {
+      requestHook: (span, request) => {
+        if (request.url) {
           span.updateName(`${request.method} ${request.url}`);
-        },
-    }),
+        }
+      },
+      ignoreOutgoingUrls: [
+        (url) => url.endsWith('/v1/metrics'), // ignore calls to collector metrics endpoint
+      ],
+    }), // https://github.com/open-telemetry/opentelemetry-js/tree/main/experimental/packages/opentelemetry-instrumentation-http
     new ExpressInstrumentation({
       ignoreLayersType: [
         // ExpressLayerType.MIDDLEWARE,
