@@ -21,7 +21,7 @@ RUN apk update && \
     apk add --no-cache bash curl
 WORKDIR /app
 COPY --from=builder /app/build/libs/order-service*.jar ./server.jar
-COPY --from=builder /app/agent/opentelemetry-javaagent-all-1.0.1.jar ./agent/opentelemetry-javaagent-all.jar
+COPY --from=builder /app/agent/opentelemetry-javaagent-all-*.jar ./agent/opentelemetry-javaagent-all.jar
 COPY --from=builder /app/scripts/docker-entrypoint.sh ./
 RUN sh -c 'touch /app/server.jar'
 #USER appuser

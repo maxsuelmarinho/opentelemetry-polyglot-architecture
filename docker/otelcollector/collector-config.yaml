@@ -10,6 +10,13 @@ receivers:
         cors_allowed_origins:
         - http://*
         - https://*
+  hostmetrics:
+    collection_interval: 1m
+    scrapers:
+      # cpu not supported on MacOS
+      # cpu:
+      load:
+      memory:
 
 processors:
   memory_limiter:
@@ -35,11 +42,13 @@ exporters:
     format: proto
   jaeger:
     endpoint: "jaeger:14250"
-    insecure: true
+    tls:
+      insecure: true
   otlp/elastic:
     # Elastic APM server https endpoint without the "https://" prefix
     endpoint: "${ELASTIC_APM_SERVER_ENDPOINT}"
-    insecure: "${ELASTIC_APM_SERVER_ENDPOINT_INSECURE}"
+    tls:
+      insecure: "${ELASTIC_APM_SERVER_ENDPOINT_INSECURE}"
     headers:
       # Elastic APM Server secret token
       Authorization: "Bearer ${ELASTIC_APM_SERVER_TOKEN}"
@@ -70,6 +79,6 @@ service:
       processors: [batch]
       exporters: [logging, zipkin, jaeger, otlp/elastic]
     metrics:
-      receivers: [otlp]
+      receivers: [otlp, hostmetrics]
       processors: [batch]
       exporters: [prometheus, otlp/elastic]

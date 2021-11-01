@@ -33,11 +33,13 @@ exporters:
     format: proto
   jaeger:
     endpoint: "${JAEGER_ENDPOINT}"
-    insecure: true
+    tls:
+      insecure: true
   otlp/elastic:
     # Elastic APM server https endpoint without the "https://" prefix
     endpoint: "${ELASTIC_APM_SERVER_ENDPOINT}"
-    insecure: "${ELASTIC_APM_SERVER_ENDPOINT_INSECURE}"
+    tls:
+      insecure: "${ELASTIC_APM_SERVER_ENDPOINT_INSECURE}"
     headers:
       # Elastic APM Server secret token
       Authorization: "Bearer ${ELASTIC_APM_SERVER_TOKEN}"

@@ -131,10 +131,11 @@ services:
       DB_PASS: "s3cr3tp4ssw0rd"
       # https://github.com/open-telemetry/opentelemetry-java/blob/main/sdk-extensions/autoconfigure/README.md#otlp-exporter-both-span-and-metric-exporters
       OTEL_EXPORTER: "otlp"
+      OTEL_JAVAAGENT_DEBUG: "true"
       OTEL_TRACES_EXPORTER: "otlp"
       OTEL_METRICS_EXPORTER: "otlp"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://collector:54317"
-      OTEL_RESOURCE_ATTRIBUTES: "service.name=kotlin-order-service,service.version=0.1.0"
+      OTEL_RESOURCE_ATTRIBUTES: "service.name=kotlin-order-service,service.namespace=amaxson,service.version=0.1.0"
       OTEL_EXPORTER_LOGGING_PREFIX: "[opentelemetry]"
       #OTEL_EXPORTER: "otlp,jaeger,zipkin,prometheus,logging"
       #OTEL_EXPORTER_JAEGER_ENDPOINT: "jaeger:55680"
@@ -262,9 +263,9 @@ services:
     #build:
     #  context: ./docker/otelcollector/
     # image: maxsuelmarinho/opentelemetry-collector-contrib:0.22.0
-    image: otel/opentelemetry-collector-contrib:0.22.0
+    image: otel/opentelemetry-collector-contrib:0.38.0
     container_name: collector
-    command: ["--config=/conf/otel-collector-config.yaml", "--log-level=DEBUG"]
+    command: ["--config=/conf/otel-collector-config.yaml"]
     volumes:
       - ./docker/otelcollector/collector-config.yaml:/conf/otel-collector-config.yaml
     environment:

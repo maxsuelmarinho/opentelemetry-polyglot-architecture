@@ -36,6 +36,9 @@ spring:
       ddl-auto: "validate"
       dialect: "org.hibernate.dialect.PostgreSQL94Dialect"
     properties.hibernate.temp.use_jdbc_metadata_defaults: false
+  jmx:
+    enabled: "true"
+    default-domain: "com.amaxson.order"
 
 management:
   endpoint:
@@ -48,6 +51,14 @@ management:
       #base-path: "/monitoring"
       exposure:
         include: "info,health,loggers,httptrace,metric,prometheus"
+  metrics:
+    export:
+      simple:
+        enabled: "true"
+        step: "30s"
+        mode: "STEP"
+      prometheus:
+        enabled: "true"
 
 endpoints:
   shutdown:

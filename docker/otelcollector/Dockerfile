@@ -1,5 +1,5 @@
 # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/cmd/otelcontribcol/Dockerfile
-FROM otel/opentelemetry-collector-contrib:0.22.0 as service
+FROM otel/opentelemetry-collector-contrib:0.38.0 as service
 
 FROM alpine:3.13
 RUN apk add --no-cache gettext

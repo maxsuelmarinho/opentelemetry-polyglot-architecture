@@ -22,6 +22,8 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-data-jpa")
   implementation("org.springframework.boot:spring-boot-starter-validation")
   implementation("org.springframework.boot:spring-boot-starter-hateoas")
+  implementation("io.micrometer:micrometer-core")
+  implementation("io.micrometer:micrometer-registry-prometheus")
   runtimeOnly("org.springframework.boot:spring-boot-devtools")
   implementation("org.modelmapper:modelmapper:2.3.3")
   implementation("org.flywaydb:flyway-core:5.2.4")
