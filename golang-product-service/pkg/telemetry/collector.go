@@ -2,10 +2,13 @@ package telemetry
 
 import (
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"go.opentelemetry.io/contrib/instrumentation/host"
+	"go.opentelemetry.io/contrib/instrumentation/runtime"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
@@ -29,10 +32,9 @@ func enableCollectorProvider(ctx context.Context, logger *logrus.Logger) func() 
 	}
 
 	resource := createResource(ctx, logger)
-	bsp := sdktrace.NewBatchSpanProcessor(traceExporter)
 	tracerProvider := sdktrace.NewTracerProvider(
-		sdktrace.WithSpanProcessor(bsp),
-		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithBatcher(traceExporter),
+		sdktrace.WithSampler(sdktrace.TraceIDRatioBased(viper.GetFloat64("TRACE_SAMPLING_RATIO"))),
 		sdktrace.WithResource(resource),
 	)
 
@@ -60,6 +62,14 @@ func enableCollectorProvider(ctx context.Context, logger *logrus.Logger) func() 
 
 	if err := pusher.Start(ctx); err != nil {
 		logger.Fatal(errors.Wrap(err, "failed to start metric controller"))
+	}
+
+	if err := runtime.Start(runtime.WithMinimumReadMemStatsInterval(time.Second)); err != nil {
+		logger.Fatal(errors.Wrap(err, "failed to start publishing runtime metric"))
+	}
+
+	if err := host.Start(); err != nil {
+		logger.Fatal(errors.Wrap(err, "failed to start publishing host metric"))
 	}
 
 	return func() error {

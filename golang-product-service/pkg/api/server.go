@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 func StartServer() {
@@ -29,10 +30,10 @@ func StartServer() {
 	r := mux.NewRouter()
 	r.Use(otelmux.Middleware(viper.GetString("APP_NAME")))
 	r.Methods(http.MethodGet).Path("/health").HandlerFunc(healthCheckHandler.HealthCheck)
-	r.Methods(http.MethodGet).Path("/api/products").HandlerFunc(productHandler.GetProducts)
-	r.Methods(http.MethodGet).Path("/api/products/top").HandlerFunc(productHandler.GetTopProducts)
-	r.Methods(http.MethodGet).Path("/api/products/{id}").Handler(productHandler.GetProductByID())
-	r.Methods(http.MethodPost).Path("/api/products/{id}/reviews").Handler(productHandler.CreateProductReview())
+	r.Methods(http.MethodGet).Path("/api/products").Handler(otelhttp.NewHandler(productHandler.GetProducts(), "GetProducts"))
+	r.Methods(http.MethodGet).Path("/api/products/top").Handler(otelhttp.NewHandler(productHandler.GetTopProducts(), "GetTopProducts"))
+	r.Methods(http.MethodGet).Path("/api/products/{id}").Handler(otelhttp.NewHandler(productHandler.GetProductByID(), "GetProductByID"))
+	r.Methods(http.MethodPost).Path("/api/products/{id}/reviews").Handler(otelhttp.NewHandler(productHandler.CreateProductReview(), "CreateProductReview"))
 
 	serverPort := viper.GetInt("SERVER_PORT")
 	httpServer := &http.Server{Addr: fmt.Sprintf(":%d", serverPort), Handler: r}

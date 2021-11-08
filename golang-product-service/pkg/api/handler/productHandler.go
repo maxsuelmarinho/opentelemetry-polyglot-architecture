@@ -17,10 +17,10 @@ import (
 )
 
 type ProductHandler interface {
-	GetProducts(w http.ResponseWriter, r *http.Request)
+	GetProducts() http.Handler
 	GetProductByID() http.Handler
 	CreateProductReview() http.Handler
-	GetTopProducts(w http.ResponseWriter, r *http.Request)
+	GetTopProducts() http.Handler
 }
 
 func NewProductHandler(service service.ProductService, logger *log.Logger) ProductHandler {
@@ -35,38 +35,40 @@ type productHandler struct {
 	logger  *log.Logger
 }
 
-func (h *productHandler) GetProducts(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	var span trace.Span
-	ctx, span = otel.Tracer(viper.GetString("APP_NAME")).Start(ctx, "GetProducts")
-	defer span.End()
-	endpointKV := httpPathKey.String("/api/v1/products")
-	httpRequestsCounter.Add(ctx, 1, endpointKV)
+func (h *productHandler) GetProducts() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		var span trace.Span
+		ctx, span = otel.Tracer(viper.GetString("APP_NAME")).Start(ctx, "GetProducts")
+		defer span.End()
+		endpointKV := httpPathKey.String("/api/v1/products")
+		httpRequestsCounter.Add(ctx, 1, endpointKV)
 
-	pageSize := 2
-	page := 1
+		pageSize := 2
+		page := 1
 
-	pageNumber := r.URL.Query().Get("pageNumber")
-	if value, err := strconv.Atoi(pageNumber); err == nil {
-		page = value
-	}
+		pageNumber := r.URL.Query().Get("pageNumber")
+		if value, err := strconv.Atoi(pageNumber); err == nil {
+			page = value
+		}
 
-	keyword := r.URL.Query().Get("keyword")
+		keyword := r.URL.Query().Get("keyword")
 
-	products, err := h.service.GetProducts(ctx, keyword, page, pageSize)
-	if err != nil {
-		span.SetStatus(codes.Error, err.Error())
-		handleError(err, w)
-		return
-	}
+		products, err := h.service.GetProducts(ctx, keyword, page, pageSize)
+		if err != nil {
+			span.SetStatus(codes.Error, err.Error())
+			handleError(err, w)
+			return
+		}
 
-	if err := json.NewEncoder(w).Encode(products); err != nil {
-		span.SetStatus(codes.Error, err.Error())
-		handleError(err, w)
-		return
-	}
+		if err := json.NewEncoder(w).Encode(products); err != nil {
+			span.SetStatus(codes.Error, err.Error())
+			handleError(err, w)
+			return
+		}
 
-	span.SetStatus(codes.Ok, "Success")
+		span.SetStatus(codes.Ok, "Success")
+	})
 }
 
 func (h *productHandler) GetProductByID() http.Handler {
@@ -118,18 +120,20 @@ func (h *productHandler) CreateProductReview() http.Handler {
 	}, h.logger)
 }
 
-func (h *productHandler) GetTopProducts(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	products, err := h.service.GetTopProducts(ctx)
-	if err != nil {
-		handleError(err, w)
-		return
-	}
+func (h *productHandler) GetTopProducts() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		products, err := h.service.GetTopProducts(ctx)
+		if err != nil {
+			handleError(err, w)
+			return
+		}
 
-	if err := json.NewEncoder(w).Encode(products); err != nil {
-		handleError(err, w)
-		return
-	}
+		if err := json.NewEncoder(w).Encode(products); err != nil {
+			handleError(err, w)
+			return
+		}
+	})
 }
 
 func respondWithJSON(w http.ResponseWriter, payload interface{}, code int) {
