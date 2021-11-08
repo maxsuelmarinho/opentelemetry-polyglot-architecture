@@ -130,25 +130,36 @@ services:
       DB_USER: "postgres"
       DB_PASS: "s3cr3tp4ssw0rd"
       # https://github.com/open-telemetry/opentelemetry-java/blob/main/sdk-extensions/autoconfigure/README.md#otlp-exporter-both-span-and-metric-exporters
-      OTEL_EXPORTER: "otlp"
       OTEL_JAVAAGENT_DEBUG: "true"
+      OTEL_EXPORTER: "otlp"
       OTEL_TRACES_EXPORTER: "otlp"
       OTEL_METRICS_EXPORTER: "otlp"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://collector:54317"
-      OTEL_RESOURCE_ATTRIBUTES: "service.name=kotlin-order-service,service.namespace=amaxson,service.version=0.1.0"
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: "http://collector:54317"
+      OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: "http://collector:54317"
+      OTEL_RESOURCE_ATTRIBUTES: "service.name=kotlin-order-service,service.namespace=amaxson,service.version=0.1.0,deployment.environment=local"
       OTEL_EXPORTER_LOGGING_PREFIX: "[opentelemetry]"
+      OTEL_EXPORTER_PROMETHEUS_HOST: "0.0.0.0"
+      OTEL_EXPORTER_PROMETHEUS_PORT: 9464
+      OTEL_INSTRUMENTATION_RUNTIME_METRICS_ENABLED: "true"
+      OTEL_INSTRUMENTATION_OSHI_ENABLED: "true"
+      JAVA_OPTS: "-javaagent:/app/agent/opentelemetry-javaagent-all.jar"
+      # send telemetry data directly to elastic apm:
+      #JAVA_OPTS: "-javaagent:/app/agent/elastic-apm-agent.jar -Delastic.apm.service_name=kotlin-order-service -Delastic.apm.server_urls=http://elastic-apm:8200 -Delastic.apm.secret_token=s3cr3t -Delastic.apm.environment=production -Delastic.apm.application_packages=com.amaxson.order"
+      #OTEL_EXPORTER_OTLP_ENDPOINT: "http://elastic-apm:8200"
+      #OTEL_EXPORTER_OTLP_HEADERS: "Authorization=Bearer s3cr3t"
+
       #OTEL_EXPORTER: "otlp,jaeger,zipkin,prometheus,logging"
-      #OTEL_EXPORTER_JAEGER_ENDPOINT: "jaeger:55680"
+      #OTEL_EXPORTER_JAEGER_ENDPOINT: "http://jaeger:14250"
       #OTEL_EXPORTER_JAEGER_SERVICE_NAME: "kotlin-order-service"
       #OTEL_EXPORTER_ZIPKIN_ENDPOINT: "zipkin:9411"
       #OTEL_EXPORTER_ZIPKIN_SERVICE_NAME: "kotlin-order-service"
-      #OTEL_EXPORTER_PROMETHEUS_PORT: 9464
-      #OTEL_EXPORTER_PROMETHEUS_HOST: "0.0.0.0"
       #OTEL_EXPORTER_OTLP_HEADERS: "key-value,key-value"
       #OTEL_PROPAGATORS: "tracecontext,b3,b3single,jaeger,ottracer,xray"
       #OTEL_ENDPOINT_PEER_SERVICE_MAPPING: "host=name,1.2.3.4=cats-service,dogs-abcdef123.serverlessapis.com=dogs-api"
     ports:
       - "8080:8080"
+      - "9464:9464"
     healthcheck:
       test: ["CMD", "curl", "-X", "GET", "http://order-service:8080/actuator/health"]
       interval: 10s
@@ -171,6 +182,7 @@ services:
     container_name: product-service
     environment:
       TZ: "America/Sao_Paulo"
+      ENVIRONMENT: "local"
       APP_NAME: "golang-product-service"
       APP_VERSION: "0.1.0"
       SERVER_PORT: "8090"
@@ -189,6 +201,7 @@ services:
       JAEGER_EXPORTER_ENDPOINT: "http://jaeger:14268/api/traces"
       COLLECTOR_EXPORTER_ENDPOINT: "collector:54317"
       COLLECTOR_COLLECT_PERIOD: "2s"
+      TRACE_SAMPLING_RATIO: "1.1" # never <= 0; always >= 1; % 0 < ratio < 1
     ports:
       - "8090:8090"
     depends_on:
@@ -271,9 +284,9 @@ services:
     environment:
       ZIPKIN_ENDPOINT: "http://zipkin-all-in-one:9411/api/v2/spans"
       JAEGER_ENDPOINT: "jaeger:14250"
-      ELASTIC_APM_SERVER_ENDPOINT: "elastic-apm:8200"
-      ELASTIC_APM_SERVER_TOKEN: "s3cr3t"
-      ELASTIC_APM_SERVER_ENDPOINT_INSECURE: "true"
+      ELASTIC_APM_SERVER_ENDPOINT: "${ELASTIC_APM_SERVER_ENDPOINT}"
+      ELASTIC_APM_SERVER_TOKEN: "${ELASTIC_APM_SERVER_TOKEN}"
+      ELASTIC_APM_SERVER_ENDPOINT_INSECURE: "${ELASTIC_APM_SERVER_ENDPOINT_INSECURE}"
       #TRACES_EXPORTERS_ENABLED: "zipkin,jaeger,otlp/elastic"
     ports:
       - "55680:55680"
@@ -337,7 +350,7 @@ services:
 
   # https://www.elastic.co/guide/en/apm/get-started/current/quick-start-overview.html
   kibana:
-    image: docker.elastic.co/kibana/kibana:7.15.0
+    image: docker.elastic.co/kibana/kibana:${ELASTIC_VERSION}
     container_name: "kibana"
     environment:
       ELASTICSEARCH_URL: http://elasticsearch:9200
@@ -355,7 +368,7 @@ services:
       - elastic-apm
 
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.15.0
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTIC_VERSION}
     container_name: "elasticsearch"
     environment:
       - bootstrap.memory_lock=true
@@ -377,7 +390,7 @@ services:
   # https://www.elastic.co/guide/en/apm/server/current/running-on-docker.html
   # https://faun.pub/elastic-apm-and-opentelemetry-integration-49abaaccdad9
   elastic-apm:
-    image: "docker.elastic.co/apm/apm-server:7.15.0"
+    image: "docker.elastic.co/apm/apm-server:${ELASTIC_VERSION}"
     container_name: "elastic-apm"
     user: apm-server
     ports:
