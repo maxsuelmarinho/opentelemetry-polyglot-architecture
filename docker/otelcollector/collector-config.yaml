@@ -60,6 +60,10 @@ exporters:
     headers:
       # Elastic APM Server secret token
       Authorization: "Bearer ${ELASTIC_APM_SERVER_TOKEN}"
+  otlp/newrelic:
+    endpoint: "${NEWRELIC_OTLP_ENDPOINT}"
+    headers:
+      api-key: "${NEWRELIC_API_KEY}"
   datadog/api:
     env: ${DATADOG_ENV}
     tags: [opentemeletry:true]

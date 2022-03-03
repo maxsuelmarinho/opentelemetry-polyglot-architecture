@@ -14,6 +14,8 @@ volumes:
     driver: local
   esdata:
     driver: local
+  grafana_data:
+    driver: local
 
 x-postgres: &default-postgres
   image: postgres:11.9-alpine
@@ -137,7 +139,7 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://collector:54317"
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: "http://collector:54317"
       OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: "http://collector:54317"
-      OTEL_RESOURCE_ATTRIBUTES: "service.name=kotlin-order-service,service.namespace=amaxson,service.version=0.1.0,deployment.environment=local"
+      OTEL_RESOURCE_ATTRIBUTES: "service.name=kotlin-order-service,service.namespace=amaxson,service.version=0.1.0,deployment.environment=local,telemetry.sdk.language=java"
       OTEL_EXPORTER_LOGGING_PREFIX: "[opentelemetry]"
       OTEL_EXPORTER_PROMETHEUS_HOST: "0.0.0.0"
       OTEL_EXPORTER_PROMETHEUS_PORT: 9464
@@ -413,5 +415,90 @@ services:
       - ecommerce
     depends_on:
       - elasticsearch
+
+  # Default credentials:
+  # username: admin
+  # password: admin
+  # Dashboards: Prometheus Stats, Prometheus Benchmark, JVM (Micrometer)
+  grafana:
+    #image: grafana/grafana:${GRAFANA_VERSION:-7.1.5}
+    image: grafana/grafana:${GRAFANA_VERSION:-7.4.0}
+    container_name: "grafana"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/datasources/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+      - ./docker/grafana/dashboards/dashboard.yml:/etc/grafana/provisioning/dashboards/dashboard.yml
+      - ./docker/grafana/dashboards:/var/lib/grafana/dashboards
+    environment:
+      - GF_SECURITY_ADMIN_USER=${ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      #- GF_AUTH_DISABLE_LOGIN_FORM=true
+      - DS_PROMETHEUS=prometheus
+    ports:
+      - "3010:3000"
+    depends_on:
+      - prometheus
+      - loki
+      - tempo-query
+    links:
+      - prometheus
+      - loki
+      - tempo-query
+    networks:
+      - ecommerce
+    labels:
+      org.label-schema.group: "monitoring"
+
+  loki:
+    #image: grafana/loki:2.0.0
+    image: grafana/loki:2.1.0
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    environment:
+      - JAEGER_AGENT_HOST=tempo
+      - JAEGER_ENDPOINT=http://tempo:14268/api/traces # send traces to Tempo
+      - JAEGER_SAMPLER_TYPE=const
+      - JAEGER_SAMPLER_PARAM=1
+    volumes:
+      - ./docker/grafana-loki/local-config.yaml:/etc/loki/local-config.yaml
+      #- grafana-loki-data:/tmp/loki
+      #- ./data/loki-data:/tmp/loki:z
+    networks:
+      - ecommerce
+
+  tempo:
+    image: grafana/tempo:latest
+    container_name: tempo
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./docker/grafana-tempo/tempo-local.yaml:/etc/tempo.yaml
+      #- grafana-tempo-data:/tmp/tempo
+      #- ./data/tempo-data:/tmp/tempo
+    ports:
+      - "14268"      # jaeger ingest, Jaeger - Thrift HTTP
+      - "14250"      # Jaeger - GRPC
+      - "55680"      # OpenTelemetry
+      - "3100"       # tempo
+      - "6831/udp"   # Jaeger - Thrift Compact
+      - "6832/udp"   # Jaeger - Thrift Binary
+    networks:
+      - ecommerce
+
+  tempo-query:
+    image: grafana/tempo-query:latest
+    container_name: tempo-query
+    command: ["--grpc-storage-plugin.configuration-file=/etc/tempo-query.yaml"]
+    volumes:
+      - ./docker/grafana-tempo-query/tempo-query.yaml:/etc/tempo-query.yaml
+    ports:
+      - "16686"  # jaeger-ui
+    depends_on:
+      - tempo
+    networks:
+      - ecommerce
+
 
 

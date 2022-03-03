@@ -1,0 +1,8 @@
+receivers:
+  opencensus:
+    address: ":55678"
+    reconnection-delay: 2s
+
+exporters:
+  opencensus:
+    endpoint: "oc-collector:55678"
