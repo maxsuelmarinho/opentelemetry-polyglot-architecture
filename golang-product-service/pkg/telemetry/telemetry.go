@@ -36,6 +36,7 @@ func createResource(ctx context.Context, logger *logrus.Logger) *resource.Resour
 			semconv.ServiceVersionKey.String(viper.GetString("APP_VERSION")),
 			semconv.ServiceInstanceIDKey.String(uuid.Must(uuid.NewRandom()).String()),
 			semconv.DeploymentEnvironmentKey.String(viper.GetString("ENVIRONMENT")),
+			semconv.TelemetrySDKLanguageGo,
 		),
 	)
 	if err != nil {

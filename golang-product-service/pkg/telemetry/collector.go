@@ -2,6 +2,9 @@ package telemetry
 
 import (
 	"context"
+	"crypto/x509"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -19,13 +22,23 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric/selector/simple"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/encoding/gzip"
 )
 
 func enableCollectorProvider(ctx context.Context, logger *logrus.Logger) func() error {
+	connectionConfig, err := getConnectionConfig()
+	if err != nil {
+		logger.Fatal(fmt.Errorf("failed to create system cert pool %w", err))
+	}
+
 	traceExporter, err := otlptracegrpc.New(ctx,
-		otlptracegrpc.WithInsecure(),
+		connectionConfig,
+		otlptracegrpc.WithCompressor(gzip.Name),
+		otlptracegrpc.WithHeaders(getHeaders()),
 		otlptracegrpc.WithEndpoint(viper.GetString("COLLECTOR_EXPORTER_ENDPOINT")),
-		otlptracegrpc.WithDialOption(grpc.WithBlock()), // useful for testing
+		otlptracegrpc.WithTimeout(10*time.Second),
+		otlptracegrpc.WithDialOption(grpc.WithBlock()),
 	)
 	if err != nil {
 		logger.Fatal(errors.Wrap(err, "failed to create exporter"))
@@ -84,4 +97,30 @@ func enableCollectorProvider(ctx context.Context, logger *logrus.Logger) func() 
 		return nil
 	}
 
+}
+
+func getConnectionConfig() (otlptracegrpc.Option, error) {
+	if viper.GetBool("COLLECTOR_EXPORTER_INSECURE_CONNECTION") {
+		return otlptracegrpc.WithInsecure(), nil
+	}
+
+	pool, err := x509.SystemCertPool()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create system cert pool %w", err)
+	}
+
+	return otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(pool, "")), nil
+}
+
+func getHeaders() map[string]string {
+	headers := map[string]string{}
+	for _, header := range strings.Split(viper.GetString("COLLECTOR_EXPORTER_HEADERS"), ",") {
+		kv := strings.Split(header, "=")
+		if len(kv) != 2 {
+			continue
+		}
+
+		headers[kv[0]] = kv[1]
+	}
+	return headers
 }
