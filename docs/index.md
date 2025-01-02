@@ -1,3 +1,3 @@
 # Sample Documentation
 
-Random content
+Random content for testing purposes only.
