@@ -1,0 +1,64 @@
+---
+site_name: Service Documentation
+
+theme:
+  name: material
+  font:
+    text: Roboto
+  favicon: https://assets.bitso.com/favicons/favicon-32x32.png
+  logo: https://support.bitso.com/hc/theming_assets/01HZPG61AZ93K66VQ6G3EJRYVX
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+      primary: custom
+      accent: custom
+
+    # Palette toggle for dark mode
+    - scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+      primary: custom
+      accent: custom
+  features:
+    - navigation.indexes
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.expand
+    - navigation.path
+    - navigation.top
+    - content.code.copy
+    - content.code.annotate
+extra_css:
+  - stylesheets/extra.css
+
+plugins:
+  - search
+  # https://mkdocs-mermaid2.readthedocs.io/en/latest/
+  - mermaid2:
+      # https://github.com/mermaid-js/mermaid/releases
+      version: 11.4.1
+  - awesome-pages
+#  - drawio-exporter
+
+markdown_extensions:
+#  - plantuml_markdown
+  - pymdownx.highlight
+  - pymdownx.superfences:
+      preserve_tabs: true
+      custom_fences:
+        # Mermaid diagrams
+        - name: mermaid
+          class: mermaid
+#          format: !!python/name:pymdownx.superfences.fence_code_format
+          format: !!python/name:mermaid2.fence_mermaid_custom
+  - pymdownx.tabbed
+  - pymdownx.pathconverter
+  - pymdownx.tasklist
+  - mdx_truly_sane_lists
